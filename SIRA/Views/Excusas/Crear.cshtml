@@ -1,0 +1,236 @@
+@model ExcusaViewModel
+@{
+    ViewData["Title"] = "Registrar Excusa";
+}
+
+<div class="page-crear">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+
+                <!-- Cabecera -->
+                <div class="text-center mb-4">
+                    <span class="d-inline-flex align-items-center justify-content-center
+                                 rounded-circle mb-3"
+                          style="width:64px;height:64px;background-color:var(--sira-accent);">
+                        <i class="bi bi-file-earmark-plus text-white fs-2"></i>
+                    </span>
+                    <h1 class="h3 fw-bold" style="color:var(--sira-navy);">
+                        Registrar Excusa
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Completa el formulario para registrar una inasistencia.
+                    </p>
+                </div>
+
+                <!-- Alerta de éxito -->
+                @if (TempData["Exito"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show d-flex
+                                align-items-center gap-2" role="alert">
+                        <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+                        <span>@TempData["Exito"]</span>
+                        <button type="button" class="btn-close ms-auto"
+                                data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                }
+
+                <!-- Alerta de error -->
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show d-flex
+                                align-items-center gap-2" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                        <span>@TempData["Error"]</span>
+                        <button type="button" class="btn-close ms-auto"
+                                data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                }
+
+                <!-- Tarjeta del formulario -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+
+                        <form id="formExcusa"
+                              asp-controller="Excusas"
+                              asp-action="Crear"
+                              method="post"
+                              enctype="multipart/form-data"
+                              novalidate>
+
+                            @Html.AntiForgeryToken()
+
+                            <!-- ── Estudiante ── -->
+                            <div class="mb-4">
+                                <label asp-for="IdEstudiante" class="form-label fw-semibold">
+                                    <i class="bi bi-person-fill me-1"
+                                       style="color:var(--sira-accent);"></i>
+                                    Estudiante
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="IdEstudiante"
+                                        asp-items="Model.Estudiantes"
+                                        class="form-select"
+                                        id="selectEstudiante">
+                                </select>
+                                <div class="invalid-feedback" id="err-estudiante"></div>
+                            </div>
+
+                            <!-- ── Motivo ── -->
+                            <div class="mb-4">
+                                <label asp-for="MotivoInasistencia" class="form-label fw-semibold">
+                                    <i class="bi bi-chat-text-fill me-1"
+                                       style="color:var(--sira-accent);"></i>
+                                    Motivo de la inasistencia
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <textarea asp-for="MotivoInasistencia"
+                                          class="form-control"
+                                          id="txtMotivo"
+                                          rows="4"
+                                          maxlength="1000"
+                                          placeholder="Describa el motivo (mínimo 10 caracteres)..."></textarea>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <div class="invalid-feedback d-inline"
+                                         id="err-motivo"></div>
+                                    <small class="text-muted ms-auto">
+                                        <span id="charCount">0</span>/1000
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- ── Evidencia ── -->
+                            <div class="mb-4">
+                                <label asp-for="Evidencia" class="form-label fw-semibold">
+                                    <i class="bi bi-paperclip me-1"
+                                       style="color:var(--sira-accent);"></i>
+                                    Documento de evidencia
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Evidencia"
+                                       type="file"
+                                       class="form-control"
+                                       id="fileEvidencia"
+                                       accept=".jpg,.jpeg,.png,.pdf" />
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Formatos permitidos: JPG, PNG, PDF — máximo 5 MB.
+                                </div>
+                                <div class="invalid-feedback" id="err-evidencia"></div>
+                            </div>
+
+                            <!-- ── Botón enviar ── -->
+                            <div class="d-grid mt-2">
+                                <button type="submit"
+                                        id="btnEnviar"
+                                        class="btn btn-primary py-2 fw-semibold"
+                                        style="background-color:var(--sira-accent);
+                                               border-color:var(--sira-accent);">
+                                    <i class="bi bi-send-fill me-2"></i>Registrar Excusa
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Volver al inicio -->
+                <div class="text-center mt-3 mb-5">
+                    <a asp-controller="Home" asp-action="Index"
+                       class="text-muted text-decoration-none small">
+                        <i class="bi bi-arrow-left me-1"></i>Volver al inicio
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    "use strict";
+
+    // Referencias
+    const form      = document.getElementById("formExcusa");
+    const selEst    = document.getElementById("selectEstudiante");
+    const txtMotivo = document.getElementById("txtMotivo");
+    const fileEvid  = document.getElementById("fileEvidencia");
+    const counter   = document.getElementById("charCount");
+    const errEst    = document.getElementById("err-estudiante");
+    const errMot    = document.getElementById("err-motivo");
+    const errFile   = document.getElementById("err-evidencia");
+
+    const MAX_SIZE     = 5 * 1024 * 1024;
+    const VALID_EXT    = [".jpg", ".jpeg", ".png", ".pdf"];
+    const VALID_MIME   = ["image/jpeg", "image/png", "application/pdf"];
+
+    // Contador de caracteres
+    txtMotivo.addEventListener("input", () => {
+        counter.textContent = txtMotivo.value.length;
+        if (txtMotivo.value.trim().length >= 10) clearErr(txtMotivo, errMot);
+    });
+
+    // Limpiar errores al interactuar
+    selEst.addEventListener("change",  () => { if (selEst.value)  clearErr(selEst,   errEst); });
+    fileEvid.addEventListener("change", () => clearErr(fileEvid, errFile));
+
+    // Validación al enviar
+    form.addEventListener("submit", function (e) {
+        let ok = true;
+
+        // 1. Estudiante requerido
+        if (!selEst.value) {
+            showErr(selEst, errEst, "Seleccione un estudiante.");
+            ok = false;
+        }
+
+        // 2. Motivo requerido y mínimo 10 caracteres
+        const mot = txtMotivo.value.trim();
+        if (!mot) {
+            showErr(txtMotivo, errMot, "El motivo de la inasistencia es obligatorio.");
+            ok = false;
+        } else if (mot.length < 10) {
+            showErr(txtMotivo, errMot, "El motivo debe tener al menos 10 caracteres.");
+            ok = false;
+        }
+
+        // 3. Archivo: obligatorio
+        if (fileEvid.files.length === 0) {
+            showErr(fileEvid, errFile, "Debe adjuntar un documento de evidencia.");
+            ok = false;
+        } else {
+            const file = fileEvid.files[0];
+            const ext  = "." + file.name.split(".").pop().toLowerCase();
+
+            if (!VALID_EXT.includes(ext) || !VALID_MIME.includes(file.type)) {
+                showErr(fileEvid, errFile, "Solo se permiten archivos JPG, PNG o PDF.");
+                ok = false;
+            } else if (file.size > MAX_SIZE) {
+                showErr(fileEvid, errFile, "El archivo no puede superar los 5 MB.");
+                ok = false;
+            }
+        }
+
+        if (!ok) {
+            e.preventDefault();
+            const first = form.querySelector(".is-invalid");
+            if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    });
+
+    function showErr(field, msgEl, msg) {
+        field.classList.add("is-invalid");
+        msgEl.textContent = msg;
+        msgEl.style.display = "block";
+    }
+
+    function clearErr(field, msgEl) {
+        field.classList.remove("is-invalid");
+        msgEl.style.display = "none";
+    }
+
+}());
+</script>
+}

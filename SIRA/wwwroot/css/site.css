@@ -263,6 +263,28 @@ body {
 }
 
 /* =====================================================
+   PÁGINA CREAR EXCUSA
+   ===================================================== */
+
+.page-crear {
+  background-color: var(--sira-grey-bg);
+  min-height: 100vh;
+  padding-top: 80px;    /* compensa navbar fixed-top (56px) + breathing room */
+  padding-bottom: 4rem;
+}
+
+/* =====================================================
+   PÁGINA DASHBOARD
+   ===================================================== */
+
+.page-dashboard {
+  background-color: var(--sira-grey-bg);
+  min-height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 4rem;
+}
+
+/* =====================================================
    FOCUS STATES (accesibilidad)
    ===================================================== */
 
