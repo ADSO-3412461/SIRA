@@ -15,6 +15,9 @@ namespace SIRA.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToAction("Index", "Dashboard");
+
             return View();
         }
 

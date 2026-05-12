@@ -10,5 +10,7 @@ namespace SIRA.Repositories.Interfaces
         Task<IEnumerable<Excusa>> ObtenerTodosAsync();
         Task<IEnumerable<Excusa>> ObtenerTodosConEvidenciaAsync();
         Task<EvidenciaExcusa?> ObtenerEvidenciaPorExcusaAsync(int idExcusa);
+        Task ActualizarDecisionAsync(int idExcusa, string estado, string motivoDecision, int idAdministrador);
+        Task<Excusa?> ObtenerConEstudianteYAcudienteAsync(int idExcusa);
     }
 }

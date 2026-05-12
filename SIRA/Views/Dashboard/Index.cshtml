@@ -39,14 +39,15 @@
                                 <th class="py-3" style="min-width:220px;">Motivo</th>
                                 <th class="py-3">Estado</th>
                                 <th class="py-3">Fecha</th>
-                                <th class="py-3 text-center pe-4">Evidencia</th>
+                                <th class="py-3 text-center">Evidencia</th>
+                                <th class="py-3 text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (!Model.Any())
                             {
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-5">
+                                    <td colspan="9" class="text-center text-muted py-5">
                                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                         No hay excusas registradas aún.
                                     </td>
@@ -75,19 +76,19 @@
                                             @{
                                                 var (badgeCss, badgeIcon) = fila.Estado switch
                                                 {
-                                                    "Aprobada"   => ("bg-success",            "bi-check-circle-fill"),
-                                                    "Rechazada"  => ("bg-danger",              "bi-x-circle-fill"),
-                                                    _            => ("bg-warning text-dark",   "bi-hourglass-split")
+                                                    "Aprobada"  => ("bg-success",          "bi-check-circle-fill"),
+                                                    "Rechazada" => ("bg-danger",            "bi-x-circle-fill"),
+                                                    _           => ("bg-warning text-dark", "bi-hourglass-split")
                                                 };
                                             }
-                                            <span class="badge @badgeCss">
+                                            <span class="badge @badgeCss" id="badge-@fila.IdExcusa">
                                                 <i class="bi @badgeIcon me-1"></i>@fila.Estado
                                             </span>
                                         </td>
                                         <td class="small text-nowrap">
                                             @fila.FechaRegistro.ToString("dd/MM/yyyy HH:mm")
                                         </td>
-                                        <td class="text-center pe-4">
+                                        <td class="text-center">
                                             @if (fila.TieneEvidencia)
                                             {
                                                 <a asp-controller="Dashboard"
@@ -105,6 +106,16 @@
                                                 </span>
                                             }
                                         </td>
+                                        <td class="text-center pe-4">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary btn-accion"
+                                                    data-id="@fila.IdExcusa"
+                                                    data-nombre="@fila.NombreEstudiante"
+                                                    title="Registrar decisión"
+                                                    onclick="abrirModalDecision(this)">
+                                                <i class="bi bi-pencil-square me-1"></i>Acciones
+                                            </button>
+                                        </td>
                                     </tr>
                                 }
                             }
@@ -116,3 +127,203 @@
 
     </div>
 </div>
+
+<!-- ── Modal de Decisión ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalDecision" tabindex="-1" aria-labelledby="modalDecisionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalDecisionLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Decisión sobre excusa
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <form id="formDecision" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="hdnIdExcusa" name="IdExcusa" />
+
+                <div class="modal-body p-4">
+
+                    <!-- Nombre del estudiante -->
+                    <div class="mb-4 p-3 rounded"
+                         style="background:var(--sira-grey-bg);border-left:4px solid var(--sira-accent);">
+                        <small class="text-muted d-block">Estudiante</small>
+                        <span class="fw-semibold" id="lblEstudiante"></span>
+                    </div>
+
+                    <!-- Decisión: Aprobar / Rechazar -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Decisión <span class="text-danger">*</span>
+                        </label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="Estado" value="Aprobada"
+                                       id="radAprobada" />
+                                <label class="form-check-label fw-semibold text-success"
+                                       for="radAprobada">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Aprobar
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="Estado" value="Rechazada"
+                                       id="radRechazada" />
+                                <label class="form-check-label fw-semibold text-danger"
+                                       for="radRechazada">
+                                    <i class="bi bi-x-circle-fill me-1"></i>Rechazar
+                                </label>
+                            </div>
+                        </div>
+                        <div class="text-danger small mt-1 d-none" id="err-estado">
+                            Seleccione una decisión.
+                        </div>
+                    </div>
+
+                    <!-- Motivo de la decisión -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="txtMotivoDecision">
+                            Motivo <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="txtMotivoDecision"
+                                  name="MotivoDecision" rows="3"
+                                  placeholder="Ingrese el motivo de la decisión..."></textarea>
+                        <div class="text-danger small mt-1 d-none" id="err-motivo">
+                            El motivo es obligatorio.
+                        </div>
+                    </div>
+
+                    <!-- Alerta resultado -->
+                    <div id="alertDecision" class="alert d-none" role="alert"></div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnRegistrar"
+                            class="btn btn-primary fw-semibold"
+                            style="background:var(--sira-accent);border-color:var(--sira-accent);">
+                        <i class="bi bi-send-fill me-2"></i>Registrar
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    var _modalDecision = null;
+
+    function abrirModalDecision(btn) {
+        var modalEl = document.getElementById("modalDecision");
+        if (!modalEl) return;
+
+        // Poblar campos
+        document.getElementById("hdnIdExcusa").value = btn.getAttribute("data-id");
+        document.getElementById("lblEstudiante").textContent = btn.getAttribute("data-nombre");
+
+        // Limpiar estado anterior
+        document.querySelectorAll("[name='Estado']").forEach(function (r) { r.checked = false; });
+        document.getElementById("txtMotivoDecision").value = "";
+        document.getElementById("err-estado").classList.add("d-none");
+        document.getElementById("err-motivo").classList.add("d-none");
+        document.getElementById("txtMotivoDecision").classList.remove("is-invalid");
+        document.getElementById("alertDecision").className = "alert d-none";
+        document.getElementById("btnRegistrar").disabled = false;
+        document.getElementById("btnRegistrar").innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
+
+        // Abrir modal explícitamente
+        if (!_modalDecision) {
+            _modalDecision = new bootstrap.Modal(modalEl);
+        }
+        _modalDecision.show();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var form    = document.getElementById("formDecision");
+        var hdnId   = document.getElementById("hdnIdExcusa");
+        var btnReg  = document.getElementById("btnRegistrar");
+        var alertBox = document.getElementById("alertDecision");
+        var txtMotivo = document.getElementById("txtMotivoDecision");
+        var errEstado = document.getElementById("err-estado");
+        var errMotivo = document.getElementById("err-motivo");
+
+        // Limpiar errores en tiempo real
+        document.querySelectorAll("[name='Estado']").forEach(function (r) {
+            r.addEventListener("change", function () { errEstado.classList.add("d-none"); });
+        });
+        txtMotivo.addEventListener("input", function () {
+            if (txtMotivo.value.trim()) {
+                errMotivo.classList.add("d-none");
+                txtMotivo.classList.remove("is-invalid");
+            }
+        });
+
+        // Envío AJAX
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            var estadoEl = document.querySelector("[name='Estado']:checked");
+            var estado   = estadoEl ? estadoEl.value : "";
+            var motivo   = txtMotivo.value.trim();
+            var ok       = true;
+
+            if (!estado) { errEstado.classList.remove("d-none"); ok = false; }
+            if (!motivo) { errMotivo.classList.remove("d-none"); txtMotivo.classList.add("is-invalid"); ok = false; }
+            if (!ok) return;
+
+            btnReg.disabled = true;
+            btnReg.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Procesando...";
+
+            var token = form.querySelector("[name='__RequestVerificationToken']").value;
+            var body  = new URLSearchParams({
+                IdExcusa: hdnId.value,
+                Estado: estado,
+                MotivoDecision: motivo,
+                __RequestVerificationToken: token
+            });
+
+            try {
+                var resp = await fetch("/Dashboard/RegistrarDecision", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: body.toString()
+                });
+                var json = await resp.json();
+
+                if (json.success) {
+                    var badge = document.getElementById("badge-" + hdnId.value);
+                    if (badge) {
+                        var esCss  = json.estado === "Aprobada"  ? "bg-success"
+                                   : json.estado === "Rechazada" ? "bg-danger"
+                                   : "bg-warning text-dark";
+                        var esIcon = json.estado === "Aprobada"  ? "bi-check-circle-fill"
+                                   : json.estado === "Rechazada" ? "bi-x-circle-fill"
+                                   : "bi-hourglass-split";
+                        badge.className = "badge " + esCss;
+                        badge.innerHTML = "<i class=\"bi " + esIcon + " me-1\"></i>" + json.estado;
+                    }
+                    if (_modalDecision) _modalDecision.hide();
+                } else {
+                    alertBox.className   = "alert alert-danger";
+                    alertBox.textContent = json.message || "Ocurrió un error. Intente de nuevo.";
+                    btnReg.disabled  = false;
+                    btnReg.innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
+                }
+            } catch (err) {
+                alertBox.className   = "alert alert-danger";
+                alertBox.textContent = "Error de conexión. Intente de nuevo.";
+                btnReg.disabled  = false;
+                btnReg.innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
+            }
+        });
+    });
+</script>
+}

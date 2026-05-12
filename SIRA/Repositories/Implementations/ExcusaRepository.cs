@@ -56,9 +56,9 @@ namespace SIRA.Repositories.Implementations
             }
             catch (Exception ex)
             {
-                // Manejar la excepción, por ejemplo, registrándola o lanzándola nuevamente
+                // Manejar la excepciï¿½n, por ejemplo, registrï¿½ndola o lanzï¿½ndola nuevamente
                 Console.WriteLine($"Error al obtener excusas con evidencia: {ex.Message}");
-                throw; // O puedes optar por manejarla de otra manera según tu lógica de negocio
+                throw; // O puedes optar por manejarla de otra manera segï¿½n tu lï¿½gica de negocio
 
                 //return (IEnumerable<Excusa>)excusa;
             }
@@ -70,6 +70,24 @@ namespace SIRA.Repositories.Implementations
         {
             return await _context.EvidenciasExcusa
                 .FirstOrDefaultAsync(ev => ev.IdExcusa == idExcusa);
+        }
+
+        public async Task ActualizarDecisionAsync(
+            int idExcusa, string estado, string motivoDecision, int idAdministrador)
+        {
+            var excusa = await _context.Excusas.FindAsync(idExcusa);
+            if (excusa == null) return;
+            excusa.Estado          = estado;
+            excusa.MotivoDecision  = motivoDecision;
+            excusa.IdAdministrador = idAdministrador;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Excusa?> ObtenerConEstudianteYAcudienteAsync(int idExcusa)
+        {
+            return await _context.Excusas
+                .Include(e => e.Estudiante).ThenInclude(est => est!.Acudiente)
+                .FirstOrDefaultAsync(e => e.IdExcusa == idExcusa);
         }
     }
 }

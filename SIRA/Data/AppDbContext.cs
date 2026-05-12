@@ -13,6 +13,7 @@ namespace SIRA.Data
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<TipoDocumento> TiposDocumento => Set<TipoDocumento>();
         public DbSet<Administrador> Administradores => Set<Administrador>();
+        public DbSet<Acudiente>    Acudientes       => Set<Acudiente>();
 
     }
 }

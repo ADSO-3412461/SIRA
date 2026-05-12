@@ -2,27 +2,34 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SIRA.Models;
 using SIRA.Repositories.Interfaces;
+using SIRA.Services;
 using SIRA.ViewModels;
 
 namespace SIRA.Controllers
 {
     public class ExcusasController : Controller
     {
-        private readonly IExcusaRepository      _excusaRepo;
-        private readonly IEstudianteRepository  _estudianteRepo;
-        private readonly IWebHostEnvironment    _env;
+        private readonly IExcusaRepository          _excusaRepo;
+        private readonly IEstudianteRepository      _estudianteRepo;
+        private readonly IAdministradorRepository   _administradorRepo;
+        private readonly IEmailService              _emailService;
+        private readonly IWebHostEnvironment        _env;
         private readonly ILogger<ExcusasController> _logger;
 
         public ExcusasController(
-            IExcusaRepository     excusaRepo,
-            IEstudianteRepository estudianteRepo,
-            IWebHostEnvironment   env,
+            IExcusaRepository          excusaRepo,
+            IEstudianteRepository      estudianteRepo,
+            IAdministradorRepository   administradorRepo,
+            IEmailService              emailService,
+            IWebHostEnvironment        env,
             ILogger<ExcusasController> logger)
         {
-            _excusaRepo     = excusaRepo;
-            _estudianteRepo = estudianteRepo;
-            _env            = env;
-            _logger         = logger;
+            _excusaRepo        = excusaRepo;
+            _estudianteRepo    = estudianteRepo;
+            _administradorRepo = administradorRepo;
+            _emailService      = emailService;
+            _env               = env;
+            _logger            = logger;
         }
 
         // GET /Excusas/Crear
@@ -76,7 +83,9 @@ namespace SIRA.Controllers
             // ── Leer bytes del archivo ────────────────────────────────────────
             using var ms = new MemoryStream();
             await vm.Evidencia.CopyToAsync(ms);
-            var archivoBytes = ms.ToArray();
+            var archivoBytes  = ms.ToArray();
+            var archivoNombre = Path.GetFileName(vm.Evidencia.FileName);
+            var archivoMime   = vm.Evidencia.ContentType;
 
             // ── Guardar excusa ────────────────────────────────────────────────
             var excusa = new Excusa
@@ -97,9 +106,6 @@ namespace SIRA.Controllers
                     IdExcusa = excusa.IdExcusa,
                     Archivo  = archivoBytes
                 });
-
-                TempData["Exito"] = "La excusa fue registrada exitosamente.";
-                return RedirectToAction(nameof(Crear));
             }
             catch (Exception ex)
             {
@@ -107,7 +113,6 @@ namespace SIRA.Controllers
                     "Error al guardar excusa para el estudiante con id {Id}",
                     vm.IdEstudiante);
 
-                // En desarrollo se muestra el error real para facilitar el diagnóstico
                 TempData["Error"] = _env.IsDevelopment()
                     ? $"Error: {ex.Message}"
                     : "Ocurrió un error al guardar la excusa. Intente de nuevo.";
@@ -115,6 +120,35 @@ namespace SIRA.Controllers
                 vm.Estudiantes = await BuildStudentListAsync();
                 return View(vm);
             }
+
+            // ── Enviar correo (fallo no impide la confirmación al usuario) ────
+            try
+            {
+                var estudiante = await _estudianteRepo.ObtenerPorIdAsync(excusa.IdEstudiante);
+                var admin      = await _administradorRepo.ObtenerPrimeroAsync();
+                var toEmail    = admin?.Correo;
+
+                if (estudiante != null && !string.IsNullOrEmpty(toEmail))
+                {
+                    await _emailService.EnviarNotificacionExcusaAsync(
+                        estudiante, excusa, archivoBytes, archivoNombre, archivoMime, toEmail);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Correo no enviado para excusa {IdExcusa}: administrador sin correo registrado.",
+                        excusa.IdExcusa);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "No se pudo enviar el correo para la excusa {IdExcusa}.",
+                    excusa.IdExcusa);
+            }
+
+            TempData["Exito"] = "La excusa fue registrada exitosamente.";
+            return RedirectToAction(nameof(Crear));
         }
 
         // ── Helpers privados ──────────────────────────────────────────────────

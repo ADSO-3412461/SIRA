@@ -21,5 +21,12 @@ namespace SIRA.Repositories.Implementations
                 .OrderBy(e => e.NombreCompleto)
                 .ToListAsync();
         }
+
+        public async Task<Estudiante?> ObtenerPorIdAsync(int id)
+        {
+            return await _context.Estudiantes
+                .Include(e => e.TipoDocumento)
+                .FirstOrDefaultAsync(e => e.IdEstudiante == id);
+        }
     }
 }

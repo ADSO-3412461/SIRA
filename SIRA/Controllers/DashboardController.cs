@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using SIRA.Repositories.Interfaces;
+using SIRA.Services;
 using SIRA.ViewModels;
 
 namespace SIRA.Controllers
@@ -8,15 +10,21 @@ namespace SIRA.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
-        private readonly IExcusaRepository          _excusaRepo;
+        private readonly IExcusaRepository           _excusaRepo;
+        private readonly IAdministradorRepository    _administradorRepo;
+        private readonly IEmailService               _emailService;
         private readonly ILogger<DashboardController> _logger;
 
         public DashboardController(
             IExcusaRepository            excusaRepo,
+            IAdministradorRepository     administradorRepo,
+            IEmailService                emailService,
             ILogger<DashboardController> logger)
         {
-            _excusaRepo = excusaRepo;
-            _logger     = logger;
+            _excusaRepo        = excusaRepo;
+            _administradorRepo = administradorRepo;
+            _emailService      = emailService;
+            _logger            = logger;
         }
 
         // GET /Dashboard
@@ -51,15 +59,62 @@ namespace SIRA.Controllers
             return File(ev.Archivo, mime, $"evidencia_{idExcusa}{ext}");
         }
 
+        // POST /Dashboard/RegistrarDecision
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegistrarDecision(DecisionViewModel vm)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Datos inválidos." });
+
+            // Obtener el administrador desde el usuario logueado
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
+                return Json(new { success = false, message = "Sesión inválida." });
+
+            var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+            if (admin == null)
+                return Json(new { success = false, message = "Administrador no encontrado." });
+
+            // Actualizar excusa en BD
+            await _excusaRepo.ActualizarDecisionAsync(
+                vm.IdExcusa, vm.Estado, vm.MotivoDecision, admin.IdAdministrador);
+
+            // Enviar correo al acudiente (fallo no bloquea la respuesta)
+            try
+            {
+                var excusa = await _excusaRepo.ObtenerConEstudianteYAcudienteAsync(vm.IdExcusa);
+                var correoAcudiente = excusa?.Estudiante?.Acudiente?.Correo;
+
+                if (excusa != null && !string.IsNullOrEmpty(correoAcudiente))
+                {
+                    await _emailService.EnviarDecisionExcusaAsync(excusa, correoAcudiente);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Correo de decisión no enviado para excusa {Id}: acudiente sin correo registrado.",
+                        vm.IdExcusa);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "No se pudo enviar correo de decisión para excusa {Id}.", vm.IdExcusa);
+            }
+
+            return Json(new { success = true, estado = vm.Estado });
+        }
+
         // ── Helpers privados ─────────────────────────────────────────────────
 
         private static (string mime, string ext) DetectarTipoArchivo(byte[] bytes)
         {
-            if (bytes.Length >= 4 && bytes[0] == 0x25 && bytes[1] == 0x50)   // %PDF
+            if (bytes.Length >= 4 && bytes[0] == 0x25 && bytes[1] == 0x50)
                 return ("application/pdf", ".pdf");
-            if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)   // JPEG
+            if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
                 return ("image/jpeg", ".jpg");
-            if (bytes.Length >= 4 && bytes[0] == 0x89 && bytes[1] == 0x50)   // PNG
+            if (bytes.Length >= 4 && bytes[0] == 0x89 && bytes[1] == 0x50)
                 return ("image/png", ".png");
             return ("application/octet-stream", ".bin");
         }

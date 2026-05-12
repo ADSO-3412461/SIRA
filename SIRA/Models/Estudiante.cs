@@ -23,6 +23,12 @@ namespace SIRA.Models
         [ForeignKey(nameof(IdTipoDocumento))]
         public TipoDocumento? TipoDocumento { get; set; }
 
+        [Column("id_acudiente")]
+        public int? IdAcudiente { get; set; }
+
+        [ForeignKey(nameof(IdAcudiente))]
+        public Acudiente? Acudiente { get; set; }
+
         public ICollection<Excusa> Excusas { get; set; } = new List<Excusa>();
     }
 }

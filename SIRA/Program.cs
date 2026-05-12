@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using SIRA.Configuration;
 using SIRA.Data;
 using SIRA.Repositories.Implementations;
 using SIRA.Repositories.Interfaces;
+using SIRA.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,9 +27,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("SiraDb")));
 
 // ── Repositorios ─────────────────────────────────────────────────────────────
-builder.Services.AddScoped<IExcusaRepository,     ExcusaRepository>();
-builder.Services.AddScoped<IEstudianteRepository, EstudianteRepository>();
-builder.Services.AddScoped<IUsuarioRepository,    UsuarioRepository>();
+builder.Services.AddScoped<IExcusaRepository,       ExcusaRepository>();
+builder.Services.AddScoped<IEstudianteRepository,   EstudianteRepository>();
+builder.Services.AddScoped<IUsuarioRepository,      UsuarioRepository>();
+builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
