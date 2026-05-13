@@ -1,0 +1,207 @@
+@model EstudianteViewModel
+@{
+    ViewData["Title"] = "Registrar Estudiante";
+}
+
+<div class="page-crear">
+    <div class="container" style="max-width:720px;">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-mortarboard-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Registrar Estudiante</h1>
+                    <p class="text-muted mb-0 small">Complete los datos del estudiante y vincule su acudiente</p>
+                </div>
+            </div>
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+            </a>
+        </div>
+
+        <!-- Alerta de éxito -->
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form asp-action="Crear" method="post" id="formEstudiante">
+            @Html.AntiForgeryToken()
+
+            <!-- ── Datos del estudiante ───────────────────────────────── -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header fw-semibold py-3"
+                     style="background:var(--sira-navy);color:#fff;">
+                    <i class="bi bi-person-fill me-2"></i>Datos del Estudiante
+                </div>
+                <div class="card-body p-4">
+
+                    <!-- Nombre completo -->
+                    <div class="mb-3">
+                        <label asp-for="NombreCompleto" class="form-label fw-semibold">
+                            Nombre completo <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NombreCompleto" class="form-control"
+                               placeholder="Ej. Juan Pérez Torres" />
+                        <span asp-validation-for="NombreCompleto" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Tipo de documento -->
+                        <div class="col-md-5">
+                            <label asp-for="IdTipoDocumento" class="form-label fw-semibold">
+                                Tipo de documento <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="IdTipoDocumento"
+                                    asp-items="Model.TiposDocumento"
+                                    class="form-select">
+                            </select>
+                            <span asp-validation-for="IdTipoDocumento" class="text-danger small"></span>
+                        </div>
+                        <!-- Número de documento -->
+                        <div class="col-md-7">
+                            <label asp-for="NumeroDocumento" class="form-label fw-semibold">
+                                Número de documento <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="NumeroDocumento" class="form-control"
+                                   placeholder="Ej. 1065432100" />
+                            <span asp-validation-for="NumeroDocumento" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ── Buscar Acudiente ───────────────────────────────────── -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header fw-semibold py-3"
+                     style="background:var(--sira-navy);color:#fff;">
+                    <i class="bi bi-search me-2"></i>Buscar Acudiente
+                </div>
+                <div class="card-body p-4">
+
+                    <p class="text-muted small mb-3">
+                        Ingrese el tipo y número de documento del acudiente para vincularlo al estudiante.
+                    </p>
+
+                    <div class="row g-3 align-items-end">
+                        <!-- Tipo documento acudiente -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Tipo de documento</label>
+                            <select id="buscarTipoDoc" class="form-select">
+                                <option value="">-- Tipo --</option>
+                                @foreach (var item in Model.TiposDocumento.Where(x => x.Value != ""))
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <!-- Número documento acudiente -->
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Número de documento</label>
+                            <input type="text" id="buscarNumDoc" class="form-control"
+                                   placeholder="Ej. 1065000000" />
+                        </div>
+                        <!-- Botón buscar -->
+                        <div class="col-md-3">
+                            <button type="button" class="btn w-100 fw-semibold"
+                                    id="btnBuscar"
+                                    style="background:var(--sira-navy);color:#fff;">
+                                <i class="bi bi-search me-1"></i>Buscar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resultado de la búsqueda -->
+                    <div id="resultadoBusqueda" class="mt-3 d-none">
+                        <!-- Se rellena por JS -->
+                    </div>
+
+                    <!-- Campo oculto que guarda el id_acudiente encontrado -->
+                    <input type="hidden" asp-for="IdAcudiente" id="hdnIdAcudiente" />
+                    <span asp-validation-for="IdAcudiente" class="text-danger small" id="errAcudiente"></span>
+
+                </div>
+            </div>
+
+            <!-- Botón guardar -->
+            <div class="d-grid">
+                <button type="submit" class="btn fw-semibold py-2"
+                        style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                    <i class="bi bi-person-check-fill me-2"></i>Registrar Estudiante
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById("btnBuscar").addEventListener("click", async function () {
+        var tipoDoc = document.getElementById("buscarTipoDoc").value;
+        var numDoc  = document.getElementById("buscarNumDoc").value.trim();
+        var result  = document.getElementById("resultadoBusqueda");
+        var hdnId   = document.getElementById("hdnIdAcudiente");
+
+        if (!tipoDoc || !numDoc) {
+            result.className = "mt-3 alert alert-warning";
+            result.innerHTML = "<i class=\"bi bi-exclamation-triangle-fill me-2\"></i>Seleccione el tipo e ingrese el número de documento.";
+            hdnId.value = "";
+            return;
+        }
+
+        // Spinner
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Buscando...";
+
+        try {
+            var resp = await fetch("/Estudiantes/BuscarAcudiente?idTipoDocumento=" + tipoDoc + "&numeroDocumento=" + encodeURIComponent(numDoc));
+            var json = await resp.json();
+
+            if (json.encontrado) {
+                hdnId.value = json.idAcudiente;
+                result.className = "mt-3 alert alert-success";
+                result.innerHTML =
+                    "<i class=\"bi bi-check-circle-fill me-2\"></i>" +
+                    "<strong>Acudiente encontrado:</strong> " + json.nombreCompleto +
+                    " <span class=\"text-muted small\">(" + (json.correo || "sin correo") + ")</span>";
+                document.getElementById("errAcudiente").textContent = "";
+            } else {
+                hdnId.value = "";
+                result.className = "mt-3 alert alert-danger";
+                result.innerHTML =
+                    "<i class=\"bi bi-x-circle-fill me-2\"></i>" +
+                    "No se encontró ningún acudiente con ese tipo y número de documento. " +
+                    "<a href='/Acudientes/Crear' class='alert-link'>Registrar acudiente</a>";
+            }
+        } catch {
+            hdnId.value = "";
+            result.className = "mt-3 alert alert-danger";
+            result.innerHTML = "<i class=\"bi bi-x-circle-fill me-2\"></i>Error de conexión. Intente de nuevo.";
+        } finally {
+            result.classList.remove("d-none");
+            btn.disabled = false;
+            btn.innerHTML = "<i class=\"bi bi-search me-1\"></i>Buscar";
+        }
+    });
+
+    // Permitir buscar presionando Enter en el campo número
+    document.getElementById("buscarNumDoc").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("btnBuscar").click();
+        }
+    });
+</script>
+}

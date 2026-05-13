@@ -24,5 +24,19 @@ namespace SIRA.Repositories.Implementations
             return await _context.Administradores
                 .FirstOrDefaultAsync(a => a.IdUsuario == idUsuario);
         }
+
+        public async Task AgregarAsync(Administrador administrador)
+        {
+            await _context.Administradores.AddAsync(administrador);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<Administrador>> ObtenerTodosAsync()
+        {
+            return await _context.Administradores
+                .Include(a => a.Usuario)
+                .OrderBy(a => a.NombreCompleto)
+                .ToListAsync();
+        }
     }
 }

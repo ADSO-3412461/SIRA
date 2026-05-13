@@ -20,6 +20,9 @@ namespace SIRA.Models
         [Column("nombre_completo")]
         public string? NombreCompleto { get; set; }
 
+        [Column("es_super_usuario")]
+        public bool EsSuperUsuario { get; set; } = false;
+
         [ForeignKey(nameof(IdUsuario))]
         public Usuario? Usuario { get; set; }
     }

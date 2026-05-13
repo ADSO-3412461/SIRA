@@ -6,5 +6,7 @@ namespace SIRA.Repositories.Interfaces
     {
         Task<Administrador?> ObtenerPrimeroAsync();
         Task<Administrador?> ObtenerPorUsuarioAsync(int idUsuario);
+        Task AgregarAsync(Administrador administrador);
+        Task<IEnumerable<Administrador>> ObtenerTodosAsync();
     }
 }

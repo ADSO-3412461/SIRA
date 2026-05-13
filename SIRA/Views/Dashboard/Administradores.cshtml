@@ -1,0 +1,86 @@
+@model IEnumerable<SIRA.Models.Administrador>
+@{
+    ViewData["Title"] = "Administradores";
+}
+
+<div class="page-dashboard">
+    <div class="container-fluid px-4">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-people-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Administradores</h1>
+                    <p class="text-muted mb-0 small">Cuentas administrativas registradas en el sistema</p>
+                </div>
+            </div>
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+            </a>
+        </div>
+
+        <!-- Tarjeta de la tabla -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead style="background-color:var(--sira-navy);color:#fff;">
+                            <tr>
+                                <th class="ps-4 py-3" style="width:50px;">#</th>
+                                <th class="py-3">Nombre Completo</th>
+                                <th class="py-3">Correo</th>
+                                <th class="py-3">Usuario (alias)</th>
+                                <th class="py-3 text-center pe-4">Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        No hay administradores registrados.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int i = 1;
+                                foreach (var admin in Model)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted small">@(i++)</td>
+                                        <td class="fw-semibold">@(admin.NombreCompleto ?? "—")</td>
+                                        <td>@(admin.Correo ?? "—")</td>
+                                        <td class="font-monospace small">@(admin.Usuario?.Alias ?? "—")</td>
+                                        <td class="text-center pe-4">
+                                            @if (admin.EsSuperUsuario)
+                                            {
+                                                <span class="badge"
+                                                      style="background-color:var(--sira-navy);">
+                                                    <i class="bi bi-shield-fill-check me-1"></i>Super Admin
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-person-fill me-1"></i>Administrador
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

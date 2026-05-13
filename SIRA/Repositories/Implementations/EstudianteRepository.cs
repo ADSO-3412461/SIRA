@@ -18,6 +18,7 @@ namespace SIRA.Repositories.Implementations
         {
             return await _context.Estudiantes
                 .Include(e => e.TipoDocumento)
+                .Include(e => e.Acudiente)
                 .OrderBy(e => e.NombreCompleto)
                 .ToListAsync();
         }
@@ -27,6 +28,18 @@ namespace SIRA.Repositories.Implementations
             return await _context.Estudiantes
                 .Include(e => e.TipoDocumento)
                 .FirstOrDefaultAsync(e => e.IdEstudiante == id);
+        }
+
+        public async Task AgregarAsync(Estudiante estudiante)
+        {
+            await _context.Estudiantes.AddAsync(estudiante);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExisteDocumentoAsync(string numeroDocumento)
+        {
+            return await _context.Estudiantes
+                .AnyAsync(e => e.NumeroDocumento == numeroDocumento);
         }
     }
 }

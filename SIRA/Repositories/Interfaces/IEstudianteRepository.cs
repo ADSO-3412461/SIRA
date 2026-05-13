@@ -6,5 +6,7 @@ namespace SIRA.Repositories.Interfaces
     {
         Task<IEnumerable<Estudiante>> ObtenerTodosAsync();
         Task<Estudiante?> ObtenerPorIdAsync(int id);
+        Task AgregarAsync(Estudiante estudiante);
+        Task<bool> ExisteDocumentoAsync(string numeroDocumento);
     }
 }

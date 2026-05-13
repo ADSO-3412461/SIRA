@@ -24,5 +24,8 @@ namespace SIRA.Models
 
         [Column("id_tipo_documento")]
         public int IdTipoDocumento { get; set; }
+
+        [ForeignKey(nameof(IdTipoDocumento))]
+        public TipoDocumento? TipoDocumento { get; set; }
     }
 }

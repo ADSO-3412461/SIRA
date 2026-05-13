@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using SIRA.Models;
 using SIRA.Repositories.Interfaces;
 using SIRA.Services;
 using SIRA.ViewModels;
@@ -10,19 +11,22 @@ namespace SIRA.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
-        private readonly IExcusaRepository           _excusaRepo;
-        private readonly IAdministradorRepository    _administradorRepo;
-        private readonly IEmailService               _emailService;
+        private readonly IExcusaRepository            _excusaRepo;
+        private readonly IAdministradorRepository     _administradorRepo;
+        private readonly IUsuarioRepository           _usuarioRepo;
+        private readonly IEmailService                _emailService;
         private readonly ILogger<DashboardController> _logger;
 
         public DashboardController(
-            IExcusaRepository            excusaRepo,
-            IAdministradorRepository     administradorRepo,
-            IEmailService                emailService,
-            ILogger<DashboardController> logger)
+            IExcusaRepository             excusaRepo,
+            IAdministradorRepository      administradorRepo,
+            IUsuarioRepository            usuarioRepo,
+            IEmailService                 emailService,
+            ILogger<DashboardController>  logger)
         {
             _excusaRepo        = excusaRepo;
             _administradorRepo = administradorRepo;
+            _usuarioRepo       = usuarioRepo;
             _emailService      = emailService;
             _logger            = logger;
         }
@@ -43,6 +47,18 @@ namespace SIRA.Controllers
                 FechaRegistro      = e.FechaHoraRegistro  ?? DateTime.MinValue,
                 TieneEvidencia     = e.Evidencia?.Archivo?.Length > 0
             }).ToList();
+
+            // Determinar si el usuario logueado es super administrador
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(idUsuarioClaim, out var idUsuario))
+            {
+                var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+                ViewData["EsSuperUsuario"] = admin?.EsSuperUsuario ?? false;
+            }
+            else
+            {
+                ViewData["EsSuperUsuario"] = false;
+            }
 
             return View(filas);
         }
@@ -104,6 +120,60 @@ namespace SIRA.Controllers
             }
 
             return Json(new { success = true, estado = vm.Estado });
+        }
+
+        // GET /Dashboard/Administradores
+        public async Task<IActionResult> Administradores()
+        {
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
+                return RedirectToAction("Index");
+
+            var adminActual = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+            if (adminActual == null || !adminActual.EsSuperUsuario)
+                return RedirectToAction("Index");
+
+            var admins = await _administradorRepo.ObtenerTodosAsync();
+            return View(admins);
+        }
+
+        // POST /Dashboard/AgregarAdministrador
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AgregarAdministrador(NuevoAdministradorViewModel vm)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Complete todos los campos correctamente." });
+
+            // Verificar que quien llama es super admin
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
+                return Json(new { success = false, message = "Sesión inválida." });
+
+            var adminActual = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+            if (adminActual == null || !adminActual.EsSuperUsuario)
+                return Json(new { success = false, message = "No tiene permisos para esta acción." });
+
+            // Verificar alias disponible
+            var existente = await _usuarioRepo.ObtenerPorAliasAsync(vm.Alias);
+            if (existente != null)
+                return Json(new { success = false, message = "El alias de usuario ya está en uso." });
+
+            // Crear usuario
+            var nuevoUsuario = new Usuario { Alias = vm.Alias, Clave = vm.Clave };
+            await _usuarioRepo.AgregarAsync(nuevoUsuario);
+
+            // Crear administrador (es_super_usuario = false)
+            var nuevoAdmin = new Administrador
+            {
+                IdUsuario      = nuevoUsuario.IdUsuario,
+                NombreCompleto = vm.NombreCompleto,
+                Correo         = vm.Correo,
+                EsSuperUsuario = false
+            };
+            await _administradorRepo.AgregarAsync(nuevoAdmin);
+
+            return Json(new { success = true });
         }
 
         // ── Helpers privados ─────────────────────────────────────────────────

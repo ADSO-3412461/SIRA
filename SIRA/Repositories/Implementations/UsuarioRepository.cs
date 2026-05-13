@@ -19,5 +19,12 @@ namespace SIRA.Repositories.Implementations
             return await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Alias == alias);
         }
+
+        public async Task<Usuario> AgregarAsync(Usuario usuario)
+        {
+            await _context.Usuarios.AddAsync(usuario);
+            await _context.SaveChangesAsync();
+            return usuario;
+        }
     }
 }
