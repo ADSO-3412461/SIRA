@@ -11,6 +11,14 @@ var builder = WebApplication.CreateBuilder(args);
 // ── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
+// ── Session ───────────────────────────────────────────────────────────────────
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout      = TimeSpan.FromHours(8);
+    options.Cookie.HttpOnly  = true;
+    options.Cookie.IsEssential = true;
+});
+
 // ── Autenticación por cookie ──────────────────────────────────────────────────
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -57,6 +65,7 @@ app.UseRouting();
 
 app.UseAuthentication(); // debe ir antes de UseAuthorization
 app.UseAuthorization();
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",

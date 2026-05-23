@@ -6,5 +6,6 @@ namespace SIRA.Repositories.Interfaces
     {
         Task<Usuario?> ObtenerPorAliasAsync(string alias);
         Task<Usuario> AgregarAsync(Usuario usuario);
+        Task ActualizarEstadoAsync(int idUsuario, bool esActivo);
     }
 }

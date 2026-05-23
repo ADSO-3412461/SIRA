@@ -26,5 +26,13 @@ namespace SIRA.Repositories.Implementations
             await _context.SaveChangesAsync();
             return usuario;
         }
+
+        public async Task ActualizarEstadoAsync(int idUsuario, bool esActivo)
+        {
+            var usuario = await _context.Usuarios.FindAsync(idUsuario);
+            if (usuario == null) return;
+            usuario.EsActivo = esActivo;
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -35,14 +35,16 @@
                                 <th class="py-3">Nombre Completo</th>
                                 <th class="py-3">Correo</th>
                                 <th class="py-3">Usuario (alias)</th>
-                                <th class="py-3 text-center pe-4">Tipo</th>
+                                <th class="py-3 text-center">Tipo</th>
+                                <th class="py-3 text-center">Estado</th>
+                                <th class="py-3 text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (!Model.Any())
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-5">
+                                    <td colspan="7" class="text-center text-muted py-5">
                                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                         No hay administradores registrados.
                                     </td>
@@ -58,8 +60,8 @@
                                         <td class="fw-semibold">@(admin.NombreCompleto ?? "—")</td>
                                         <td>@(admin.Correo ?? "—")</td>
                                         <td class="font-monospace small">@(admin.Usuario?.Alias ?? "—")</td>
-                                        <td class="text-center pe-4">
-                                            @if (admin.EsSuperUsuario)
+                                        <td class="text-center">
+                                            @if (admin.Usuario?.EsSuperUsuario == true)
                                             {
                                                 <span class="badge"
                                                       style="background-color:var(--sira-navy);">
@@ -71,6 +73,43 @@
                                                 <span class="badge bg-secondary">
                                                     <i class="bi bi-person-fill me-1"></i>Administrador
                                                 </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (admin.Usuario?.EsActivo == true)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Activo
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Inactivo
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            @if (admin.Usuario != null)
+                                            {
+                                                <form asp-controller="Dashboard"
+                                                      asp-action="ActualizarEstado"
+                                                      method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="idUsuario" value="@admin.Usuario.IdUsuario" />
+                                                    <input type="hidden" name="esActivo"  value="@(admin.Usuario.EsActivo ? "false" : "true")" />
+                                                    <button type="submit"
+                                                            class="btn btn-sm @(admin.Usuario.EsActivo ? "btn-outline-danger" : "btn-outline-success") fw-semibold">
+                                                        @if (admin.Usuario.EsActivo)
+                                                        {
+                                                            <i class="bi bi-toggle-off me-1"></i><text>Desactivar</text>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-toggle-on me-1"></i><text>Activar</text>
+                                                        }
+                                                    </button>
+                                                </form>
                                             }
                                         </td>
                                     </tr>

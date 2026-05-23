@@ -44,6 +44,12 @@ namespace SIRA.Controllers
                 return View(vm);
             }
 
+            if (!usuario.EsActivo)
+            {
+                ModelState.AddModelError(string.Empty, "Usuario inactivo. Contacte al administrador.");
+                return View(vm);
+            }
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
@@ -57,6 +63,8 @@ namespace SIRA.Controllers
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 principal,
                 new AuthenticationProperties { IsPersistent = false });
+
+            HttpContext.Session.SetInt32("EsSuperUsuario", usuario.EsSuperUsuario ? 1 : 0);
 
             _logger.LogInformation("Usuario {Alias} inició sesión.", usuario.Alias);
             return RedirectToAction("Index", "Dashboard");

@@ -48,17 +48,7 @@ namespace SIRA.Controllers
                 TieneEvidencia     = e.Evidencia?.Archivo?.Length > 0
             }).ToList();
 
-            // Determinar si el usuario logueado es super administrador
-            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (int.TryParse(idUsuarioClaim, out var idUsuario))
-            {
-                var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
-                ViewData["EsSuperUsuario"] = admin?.EsSuperUsuario ?? false;
-            }
-            else
-            {
-                ViewData["EsSuperUsuario"] = false;
-            }
+            ViewData["EsSuperUsuario"] = HttpContext.Session.GetInt32("EsSuperUsuario") == 1;
 
             return View(filas);
         }
@@ -125,12 +115,7 @@ namespace SIRA.Controllers
         // GET /Dashboard/Administradores
         public async Task<IActionResult> Administradores()
         {
-            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
-                return RedirectToAction("Index");
-
-            var adminActual = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
-            if (adminActual == null || !adminActual.EsSuperUsuario)
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
                 return RedirectToAction("Index");
 
             var admins = await _administradorRepo.ObtenerTodosAsync();
@@ -146,12 +131,7 @@ namespace SIRA.Controllers
                 return Json(new { success = false, message = "Complete todos los campos correctamente." });
 
             // Verificar que quien llama es super admin
-            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
-                return Json(new { success = false, message = "Sesión inválida." });
-
-            var adminActual = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
-            if (adminActual == null || !adminActual.EsSuperUsuario)
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
                 return Json(new { success = false, message = "No tiene permisos para esta acción." });
 
             // Verificar alias disponible
@@ -160,20 +140,30 @@ namespace SIRA.Controllers
                 return Json(new { success = false, message = "El alias de usuario ya está en uso." });
 
             // Crear usuario
-            var nuevoUsuario = new Usuario { Alias = vm.Alias, Clave = vm.Clave };
+            var nuevoUsuario = new Usuario { Alias = vm.Alias, Clave = vm.Clave, EsActivo = true };
             await _usuarioRepo.AgregarAsync(nuevoUsuario);
 
-            // Crear administrador (es_super_usuario = false)
             var nuevoAdmin = new Administrador
             {
                 IdUsuario      = nuevoUsuario.IdUsuario,
                 NombreCompleto = vm.NombreCompleto,
-                Correo         = vm.Correo,
-                EsSuperUsuario = false
+                Correo         = vm.Correo
             };
             await _administradorRepo.AgregarAsync(nuevoAdmin);
 
             return Json(new { success = true });
+        }
+
+        // POST /Dashboard/ActualizarEstado
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActualizarEstado(int idUsuario, bool esActivo)
+        {
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
+                return RedirectToAction("Index");
+
+            await _usuarioRepo.ActualizarEstadoAsync(idUsuario, esActivo);
+            return RedirectToAction("Administradores");
         }
 
         // ── Helpers privados ─────────────────────────────────────────────────

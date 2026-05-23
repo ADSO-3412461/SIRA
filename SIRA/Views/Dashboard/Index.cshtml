@@ -27,7 +27,7 @@
                    class="btn btn-sm btn-outline-secondary fw-semibold">
                     <i class="bi bi-mortarboard-fill me-1"></i>Estudiantes
                 </a>
-                @if ((bool)(ViewData["EsSuperUsuario"] ?? false))
+                @if (Context.Session.GetInt32("EsSuperUsuario") == 1)
                 {
                     <a asp-controller="Dashboard" asp-action="Administradores"
                        class="btn btn-sm btn-outline-secondary fw-semibold">
@@ -240,7 +240,7 @@
 </div>
 
 <!-- ── Modal Agregar Administrador ───────────────────────────────────────── -->
-@if ((bool)(ViewData["EsSuperUsuario"] ?? false))
+@if (Context.Session.GetInt32("EsSuperUsuario") == 1)
 {
 <div class="modal fade" id="modalAdmin" tabindex="-1" aria-labelledby="modalAdminLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

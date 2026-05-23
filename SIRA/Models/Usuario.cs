@@ -17,5 +17,11 @@ namespace SIRA.Models
         [Column("clave")]
         [Required]
         public string Clave { get; set; } = string.Empty;
+
+        [Column("es_super_usuario")]
+        public bool EsSuperUsuario { get; set; } = false;
+
+        [Column("es_activo")]
+        public bool EsActivo { get; set; } = true;
     }
 }
