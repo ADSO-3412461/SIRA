@@ -32,16 +32,26 @@ namespace SIRA.Controllers
         }
 
         // GET /Dashboard
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pagina = 1)
         {
-            var excusas = await _excusaRepo.ObtenerTodosConEvidenciaAsync();
+            const int registrosPorPagina = 10;
+
+            if (pagina < 1) pagina = 1;
+
+            var (excusas, totalRegistros) = await _excusaRepo.ObtenerPaginadoAsync(pagina, registrosPorPagina);
+
+            var totalPaginas = totalRegistros == 0
+                ? 1
+                : (int)Math.Ceiling((double)totalRegistros / registrosPorPagina);
+
+            if (pagina > totalPaginas) pagina = totalPaginas;
 
             var filas = excusas.Select(e => new ExcusaDashboardRow
             {
                 IdExcusa           = e.IdExcusa,
-                NombreEstudiante   = e.Estudiante?.NombreCompleto  ?? "—",
+                NombreEstudiante   = e.Estudiante?.NombreCompleto       ?? "—",
                 TipoDocumento      = e.Estudiante?.TipoDocumento?.Sigla ?? "—",
-                NumeroDocumento    = e.Estudiante?.NumeroDocumento  ?? "—",
+                NumeroDocumento    = e.Estudiante?.NumeroDocumento       ?? "—",
                 MotivoInasistencia = e.MotivoInasistencia ?? string.Empty,
                 Estado             = string.IsNullOrEmpty(e.Estado) ? "Por revisar" : e.Estado,
                 FechaRegistro      = e.FechaHoraRegistro  ?? DateTime.MinValue,
@@ -50,7 +60,15 @@ namespace SIRA.Controllers
 
             ViewData["EsSuperUsuario"] = HttpContext.Session.GetInt32("EsSuperUsuario") == 1;
 
-            return View(filas);
+            var vm = new DashboardViewModel
+            {
+                Filas          = filas,
+                PaginaActual   = pagina,
+                TotalPaginas   = totalPaginas,
+                TotalRegistros = totalRegistros
+            };
+
+            return View(vm);
         }
 
         // GET /Dashboard/Descargar/{idExcusa}

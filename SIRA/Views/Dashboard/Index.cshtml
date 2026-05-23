@@ -1,4 +1,4 @@
-@model List<ExcusaDashboardRow>
+@model DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
 }
@@ -46,10 +46,18 @@
                 <span class="badge rounded-pill px-3 py-2 fs-6"
                       style="background-color:var(--sira-navy);">
                     <i class="bi bi-file-earmark-text me-1"></i>
-                    @Model.Count excusa@(Model.Count == 1 ? "" : "s") registrada@(Model.Count == 1 ? "" : "s")
+                    @Model.TotalRegistros excusa@(Model.TotalRegistros == 1 ? "" : "s") registrada@(Model.TotalRegistros == 1 ? "" : "s")
                 </span>
             </div>
         </div>
+
+        @{
+            int desde = Model.TotalRegistros == 0 ? 0 : (Model.PaginaActual - 1) * 10 + 1;
+            int hasta  = Math.Min(Model.PaginaActual * 10, Model.TotalRegistros);
+            int pIni   = Math.Max(1, Model.PaginaActual - 2);
+            int pFin   = Math.Min(Model.TotalPaginas, pIni + 4);
+            if (pFin - pIni < 4) pIni = Math.Max(1, pFin - 4);
+        }
 
         <!-- Tarjeta de la tabla -->
         <div class="card border-0 shadow-sm">
@@ -70,7 +78,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if (!Model.Any())
+                            @if (!Model.Filas.Any())
                             {
                                 <tr>
                                     <td colspan="9" class="text-center text-muted py-5">
@@ -81,8 +89,8 @@
                             }
                             else
                             {
-                                int i = 1;
-                                foreach (var fila in Model)
+                                int i = (Model.PaginaActual - 1) * 10 + 1;
+                                foreach (var fila in Model.Filas)
                                 {
                                     <tr>
                                         <td class="ps-4 text-muted small">@(i++)</td>
@@ -150,6 +158,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Paginación -->
+        @if (Model.TotalPaginas > 1 || Model.TotalRegistros > 0)
+        {
+            <div class="d-flex flex-column align-items-center gap-2 py-3">
+
+                <nav aria-label="Paginación de excusas">
+                    <ul class="pagination pagination-sm mb-0">
+
+                        <!-- Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaAnterior ? $"/Dashboard?pagina={Model.PaginaActual - 1}" : "#")"
+                               aria-label="Anterior">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Números de página (ventana de 5) -->
+                        @for (int p = pIni; p <= pFin; p++)
+                        {
+                            <li class="page-item @(p == Model.PaginaActual ? "active" : "")">
+                                <a class="page-link" href="/Dashboard?pagina=@p">@p</a>
+                            </li>
+                        }
+
+                        <!-- Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaSiguiente ? $"/Dashboard?pagina={Model.PaginaActual + 1}" : "#")"
+                               aria-label="Siguiente">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+                <small class="text-muted">
+                    Mostrando @desde – @hasta de @Model.TotalRegistros excusa@(Model.TotalRegistros == 1 ? "" : "s")
+                </small>
+
+            </div>
+        }
 
     </div>
 </div>

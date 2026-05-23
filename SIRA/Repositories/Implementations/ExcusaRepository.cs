@@ -89,5 +89,22 @@ namespace SIRA.Repositories.Implementations
                 .Include(e => e.Estudiante).ThenInclude(est => est!.Acudiente)
                 .FirstOrDefaultAsync(e => e.IdExcusa == idExcusa);
         }
+
+        public async Task<(List<Excusa> Excusas, int TotalRegistros)> ObtenerPaginadoAsync(
+            int pagina, int registrosPorPagina)
+        {
+            var query = _context.Excusas
+                .Include(e => e.Estudiante).ThenInclude(est => est!.TipoDocumento)
+                .Include(e => e.Evidencia)
+                .OrderByDescending(e => e.FechaHoraRegistro);
+
+            var total   = await query.CountAsync();
+            var excusas = await query
+                .Skip((pagina - 1) * registrosPorPagina)
+                .Take(registrosPorPagina)
+                .ToListAsync();
+
+            return (excusas, total);
+        }
     }
 }
