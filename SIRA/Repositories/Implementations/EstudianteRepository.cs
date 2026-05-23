@@ -23,6 +23,15 @@ namespace SIRA.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Estudiante>> ObtenerPorInstitucionAsync(int idInstitucion)
+        {
+            return await _context.Estudiantes
+                .Include(e => e.TipoDocumento)
+                .Where(e => e.IdInstitucionEducativa == idInstitucion)
+                .OrderBy(e => e.NombreCompleto)
+                .ToListAsync();
+        }
+
         public async Task<Estudiante?> ObtenerPorIdAsync(int id)
         {
             return await _context.Estudiantes

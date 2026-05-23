@@ -29,6 +29,10 @@
                 </a>
                 @if (Context.Session.GetInt32("EsSuperUsuario") == 1)
                 {
+                    <a asp-controller="InstitucionEducativa" asp-action="Index"
+                       class="btn btn-sm btn-outline-secondary fw-semibold">
+                        <i class="bi bi-building-fill me-1"></i>Instituciones
+                    </a>
                     <a asp-controller="Dashboard" asp-action="Administradores"
                        class="btn btn-sm btn-outline-secondary fw-semibold">
                         <i class="bi bi-people-fill me-1"></i>Ver Administradores

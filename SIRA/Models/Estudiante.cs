@@ -29,6 +29,12 @@ namespace SIRA.Models
         [ForeignKey(nameof(IdAcudiente))]
         public Acudiente? Acudiente { get; set; }
 
+        [Column("id_institucion_educativa")]
+        public int? IdInstitucionEducativa { get; set; }
+
+        [ForeignKey(nameof(IdInstitucionEducativa))]
+        public InstitucionEducativa? InstitucionEducativa { get; set; }
+
         public ICollection<Excusa> Excusas { get; set; } = new List<Excusa>();
     }
 }

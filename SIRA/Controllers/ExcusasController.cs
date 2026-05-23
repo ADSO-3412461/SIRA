@@ -9,45 +9,88 @@ namespace SIRA.Controllers
 {
     public class ExcusasController : Controller
     {
-        private readonly IExcusaRepository          _excusaRepo;
-        private readonly IEstudianteRepository      _estudianteRepo;
-        private readonly IAdministradorRepository   _administradorRepo;
-        private readonly IEmailService              _emailService;
-        private readonly IWebHostEnvironment        _env;
-        private readonly ILogger<ExcusasController> _logger;
+        private readonly IExcusaRepository                   _excusaRepo;
+        private readonly IEstudianteRepository               _estudianteRepo;
+        private readonly IAdministradorRepository            _administradorRepo;
+        private readonly IInstitucionEducativaRepository     _institucionRepo;
+        private readonly IEmailService                       _emailService;
+        private readonly IWebHostEnvironment                 _env;
+        private readonly ILogger<ExcusasController>          _logger;
 
         public ExcusasController(
-            IExcusaRepository          excusaRepo,
-            IEstudianteRepository      estudianteRepo,
-            IAdministradorRepository   administradorRepo,
-            IEmailService              emailService,
-            IWebHostEnvironment        env,
-            ILogger<ExcusasController> logger)
+            IExcusaRepository                   excusaRepo,
+            IEstudianteRepository               estudianteRepo,
+            IAdministradorRepository            administradorRepo,
+            IInstitucionEducativaRepository     institucionRepo,
+            IEmailService                       emailService,
+            IWebHostEnvironment                 env,
+            ILogger<ExcusasController>          logger)
         {
             _excusaRepo        = excusaRepo;
             _estudianteRepo    = estudianteRepo;
             _administradorRepo = administradorRepo;
+            _institucionRepo   = institucionRepo;
             _emailService      = emailService;
             _env               = env;
             _logger            = logger;
         }
 
-        // GET /Excusas/Crear
+        // GET /Excusas/Crear?idInstitucion={id}
         [HttpGet]
-        public async Task<IActionResult> Crear()
+        public async Task<IActionResult> Crear(int idInstitucion)
         {
-            var vm = new ExcusaViewModel
+            try
             {
-                Estudiantes = await BuildStudentListAsync()
-            };
-            return View(vm);
+                if (idInstitucion <= 0)
+                {
+                    TempData["Error"] = "La institución seleccionada no es válida. Por favor seleccione otra.";
+                    return RedirectToAction("Instituciones", "Home");
+                }
+
+                var institucion = await _institucionRepo.ObtenerPorIdAsync(idInstitucion);
+                if (institucion == null)
+                {
+                    TempData["Error"] = "La institución seleccionada no existe. Por favor seleccione otra.";
+                    return RedirectToAction("Instituciones", "Home");
+                }
+
+                if (!institucion.EsActivo)
+                {
+                    TempData["Error"] = "La institución seleccionada no está disponible. Por favor seleccione otra.";
+                    return RedirectToAction("Instituciones", "Home");
+                }
+
+                var estudiantes = await BuildStudentListAsync(idInstitucion);
+                if (estudiantes == null || estudiantes.Count <= 1)
+                {
+                    TempData["Advertencia"] = "La institución aún no tiene estudiantes registrados. Por favor contacte al administrador.";
+                    return RedirectToAction("Instituciones", "Home");
+                }
+
+                ViewBag.IdInstitucion = idInstitucion;
+                return View(new ExcusaViewModel { Estudiantes = estudiantes });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado al cargar el formulario de excusa para institución {Id}.", idInstitucion);
+                TempData["Error"] = "Ocurrió un error inesperado. Por favor intente nuevamente.";
+                return RedirectToAction("Instituciones", "Home");
+            }
         }
 
         // POST /Excusas/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(ExcusaViewModel vm)
+        public async Task<IActionResult> Crear(ExcusaViewModel vm, int idInstitucion)
         {
+            // ── Verificar que la institución sigue activa ─────────────────────
+            var institucion = await _institucionRepo.ObtenerPorIdAsync(idInstitucion);
+            if (institucion == null || !institucion.EsActivo)
+            {
+                TempData["Error"] = "La institución seleccionada ya no está disponible.";
+                return RedirectToAction("Instituciones", "Home");
+            }
+
             // ── Validar que se adjuntó evidencia ──────────────────────────────
             if (vm.Evidencia == null || vm.Evidencia.Length == 0)
             {
@@ -57,7 +100,8 @@ namespace SIRA.Controllers
 
             if (!ModelState.IsValid)
             {
-                vm.Estudiantes = await BuildStudentListAsync();
+                ViewBag.IdInstitucion = idInstitucion;
+                vm.Estudiantes = await BuildStudentListAsync(idInstitucion);
                 return View(vm);
             }
 
@@ -67,7 +111,8 @@ namespace SIRA.Controllers
             {
                 ModelState.AddModelError(nameof(vm.Evidencia),
                     "Solo se permiten archivos JPG, PNG o PDF.");
-                vm.Estudiantes = await BuildStudentListAsync();
+                ViewBag.IdInstitucion = idInstitucion;
+                vm.Estudiantes = await BuildStudentListAsync(idInstitucion);
                 return View(vm);
             }
 
@@ -76,7 +121,8 @@ namespace SIRA.Controllers
             {
                 ModelState.AddModelError(nameof(vm.Evidencia),
                     "El archivo no puede superar los 5 MB.");
-                vm.Estudiantes = await BuildStudentListAsync();
+                ViewBag.IdInstitucion = idInstitucion;
+                vm.Estudiantes = await BuildStudentListAsync(idInstitucion);
                 return View(vm);
             }
 
@@ -117,7 +163,8 @@ namespace SIRA.Controllers
                     ? $"Error: {ex.Message}"
                     : "Ocurrió un error al guardar la excusa. Intente de nuevo.";
 
-                vm.Estudiantes = await BuildStudentListAsync();
+                ViewBag.IdInstitucion = idInstitucion;
+                vm.Estudiantes = await BuildStudentListAsync(idInstitucion);
                 return View(vm);
             }
 
@@ -148,14 +195,14 @@ namespace SIRA.Controllers
             }
 
             TempData["Exito"] = "La excusa fue registrada exitosamente.";
-            return RedirectToAction(nameof(Crear));
+            return RedirectToAction(nameof(Crear), new { idInstitucion });
         }
 
         // ── Helpers privados ──────────────────────────────────────────────────
 
-        private async Task<List<SelectListItem>> BuildStudentListAsync()
+        private async Task<List<SelectListItem>> BuildStudentListAsync(int idInstitucion)
         {
-            var students = await _estudianteRepo.ObtenerTodosAsync();
+            var students = await _estudianteRepo.ObtenerPorInstitucionAsync(idInstitucion);
 
             var items = students.Select(s => new SelectListItem
             {

@@ -40,8 +40,9 @@ builder.Services.AddScoped<IExcusaRepository,        ExcusaRepository>();
 builder.Services.AddScoped<IEstudianteRepository,    EstudianteRepository>();
 builder.Services.AddScoped<IUsuarioRepository,       UsuarioRepository>();
 builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
-builder.Services.AddScoped<IAcudienteRepository,     AcudienteRepository>();
-builder.Services.AddScoped<ITipoDocumentoRepository, TipoDocumentoRepository>();
+builder.Services.AddScoped<IAcudienteRepository,             AcudienteRepository>();
+builder.Services.AddScoped<ITipoDocumentoRepository,         TipoDocumentoRepository>();
+builder.Services.AddScoped<IInstitucionEducativaRepository,  InstitucionEducativaRepository>();
 
 // ── Email ─────────────────────────────────────────────────────────────────────
 builder.Services.Configure<EmailSettings>(
