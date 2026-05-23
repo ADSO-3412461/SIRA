@@ -213,5 +213,46 @@ namespace SIRA.Controllers
 
             return items;
         }
+
+        private async Task<List<SelectListItem>> BuildAcudientesAsync()
+        {
+            var acudientes = await _acudienteRepo.ObtenerTodosAsync();
+
+            var items = acudientes.OrderBy(a => a.NombreCompleto).Select(a => new SelectListItem
+            {
+                Value = a.IdAcudiente.ToString(),
+                Text  = a.NombreCompleto ?? "—"
+            }).ToList();
+
+            items.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text  = "-- Sin acudiente --"
+            });
+
+            return items;
+        }
+
+        private async Task<List<SelectListItem>> BuildInstitucionesAsync()
+        {
+            var instituciones = await _institucionRepo.ObtenerTodosAsync();
+
+            var items = instituciones
+                .Where(i => i.EsActivo)
+                .OrderBy(i => i.NombreInstitucion)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.IdInstitucionEducativa.ToString(),
+                    Text  = i.NombreInstitucion ?? "—"
+                }).ToList();
+
+            items.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text  = "-- Sin institución --"
+            });
+
+            return items;
+        }
     }
 }
