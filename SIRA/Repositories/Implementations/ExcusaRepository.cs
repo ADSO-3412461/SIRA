@@ -83,6 +83,15 @@ namespace SIRA.Repositories.Implementations
             await _context.SaveChangesAsync();
         }
 
+        public async Task ActualizarEstadoAsync(int idExcusa, string estado, string motivoDecision)
+        {
+            var excusa = await _context.Excusas.FindAsync(idExcusa);
+            if (excusa == null) return;
+            excusa.Estado         = estado;
+            excusa.MotivoDecision = motivoDecision;
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<Excusa?> ObtenerConEstudianteYAcudienteAsync(int idExcusa)
         {
             return await _context.Excusas

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SIRA.Models;
+using SIRA.Models.Entities;
 
 namespace SIRA.Data
 {
@@ -15,6 +16,7 @@ namespace SIRA.Data
         public DbSet<Administrador> Administradores => Set<Administrador>();
         public DbSet<Acudiente>    Acudientes       => Set<Acudiente>();
         public DbSet<InstitucionEducativa> InstitucionesEducativas => Set<InstitucionEducativa>();
+        public DbSet<Auditoria>            Auditorias             => Set<Auditoria>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

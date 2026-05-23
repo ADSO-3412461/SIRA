@@ -43,6 +43,7 @@ builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IAcudienteRepository,             AcudienteRepository>();
 builder.Services.AddScoped<ITipoDocumentoRepository,         TipoDocumentoRepository>();
 builder.Services.AddScoped<IInstitucionEducativaRepository,  InstitucionEducativaRepository>();
+builder.Services.AddScoped<IAuditoriaRepository,             AuditoriaRepository>();
 
 // ── Email ─────────────────────────────────────────────────────────────────────
 builder.Services.Configure<EmailSettings>(

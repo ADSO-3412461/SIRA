@@ -47,5 +47,25 @@ namespace SIRA.Repositories.Implementations
                 .OrderBy(a => a.NombreCompleto)
                 .ToListAsync();
         }
+
+        public async Task<Acudiente?> ObtenerPorIdAsync(int idAcudiente)
+        {
+            return await _context.Acudientes
+                .Include(a => a.TipoDocumento)
+                .FirstOrDefaultAsync(a => a.IdAcudiente == idAcudiente);
+        }
+
+        public async Task ActualizarAsync(Acudiente acudiente)
+        {
+            var existente = await _context.Acudientes.FindAsync(acudiente.IdAcudiente);
+            if (existente == null) return;
+
+            existente.NombreCompleto  = acudiente.NombreCompleto;
+            existente.IdTipoDocumento = acudiente.IdTipoDocumento;
+            existente.NumeroDocumento = acudiente.NumeroDocumento;
+            existente.Correo          = acudiente.Correo;
+
+            await _context.SaveChangesAsync();
+        }
     }
 }

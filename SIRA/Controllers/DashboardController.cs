@@ -184,6 +184,21 @@ namespace SIRA.Controllers
             return RedirectToAction("Administradores");
         }
 
+        // POST /Dashboard/ActualizarSuperUsuario
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActualizarSuperUsuario(int idUsuario, bool esSuperUsuario)
+        {
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
+                return RedirectToAction("Index");
+
+            await _usuarioRepo.ActualizarSuperUsuarioAsync(idUsuario, esSuperUsuario);
+            TempData["Exito"] = esSuperUsuario
+                ? "Rol de Super Admin asignado correctamente."
+                : "Rol de Super Admin removido correctamente.";
+            return RedirectToAction("Administradores");
+        }
+
         // ── Helpers privados ─────────────────────────────────────────────────
 
         private static (string mime, string ext) DetectarTipoArchivo(byte[] bytes)

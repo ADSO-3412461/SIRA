@@ -96,6 +96,91 @@ namespace SIRA.Controllers
             return View(acudientes);
         }
 
+        // GET /Acudientes/Editar/{id}
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            var acudiente = await _acudienteRepo.ObtenerPorIdAsync(id);
+            if (acudiente == null)
+            {
+                TempData["Error"] = "Acudiente no encontrado.";
+                return RedirectToAction(nameof(Consultar));
+            }
+
+            var vm = new AcudienteEditarViewModel
+            {
+                IdAcudiente     = acudiente.IdAcudiente,
+                NombreCompleto  = acudiente.NombreCompleto  ?? string.Empty,
+                NumeroDocumento = acudiente.NumeroDocumento ?? string.Empty,
+                Correo          = acudiente.Correo          ?? string.Empty,
+                IdTipoDocumento = acudiente.IdTipoDocumento,
+                TiposDocumento  = await BuildTiposDocumentoAsync()
+            };
+
+            return View(vm);
+        }
+
+        // POST /Acudientes/Editar
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(AcudienteEditarViewModel vm)
+        {
+            if (!ModelState.IsValid)
+            {
+                vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                return View(vm);
+            }
+
+            var actual = await _acudienteRepo.ObtenerPorIdAsync(vm.IdAcudiente);
+            if (actual == null)
+            {
+                TempData["Error"] = "Acudiente no encontrado.";
+                return RedirectToAction(nameof(Consultar));
+            }
+
+            if (vm.Correo != actual.Correo &&
+                await _acudienteRepo.ExisteCorreoAsync(vm.Correo))
+            {
+                ModelState.AddModelError(nameof(vm.Correo),
+                    "El correo ya está registrado por otro acudiente.");
+                vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                return View(vm);
+            }
+
+            if (vm.NumeroDocumento != actual.NumeroDocumento &&
+                await _acudienteRepo.ExisteDocumentoAsync(vm.NumeroDocumento))
+            {
+                ModelState.AddModelError(nameof(vm.NumeroDocumento),
+                    "El número de documento ya está registrado.");
+                vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                return View(vm);
+            }
+
+            try
+            {
+                await _acudienteRepo.ActualizarAsync(new Acudiente
+                {
+                    IdAcudiente     = vm.IdAcudiente,
+                    NombreCompleto  = vm.NombreCompleto,
+                    IdTipoDocumento = vm.IdTipoDocumento,
+                    NumeroDocumento = vm.NumeroDocumento,
+                    Correo          = vm.Correo,
+                    Contrasena      = actual.Contrasena
+                });
+
+                TempData["Exito"] = "Acudiente actualizado exitosamente.";
+                return RedirectToAction(nameof(Consultar));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar acudiente {Id}.", vm.IdAcudiente);
+                ModelState.AddModelError(string.Empty,
+                    "Ocurrió un error al guardar. Intente de nuevo.");
+                vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                return View(vm);
+            }
+        }
+
         // ── Helpers ──────────────────────────────────────────────────────────
 
         private async Task<List<SelectListItem>> BuildTiposDocumentoAsync()

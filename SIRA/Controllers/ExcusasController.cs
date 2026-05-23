@@ -198,6 +198,42 @@ namespace SIRA.Controllers
             return RedirectToAction(nameof(Crear), new { idInstitucion });
         }
 
+        // POST /Excusas/ActualizarEstado
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActualizarEstado(int idExcusa, string estado, string motivoDecision)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return RedirectToAction("Index", "Dashboard");
+
+            var excusa = await _excusaRepo.ObtenerPorIdAsync(idExcusa);
+            if (excusa == null)
+            {
+                TempData["Error"] = "La excusa no fue encontrada.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            if (excusa.Estado == "Aprobada" || excusa.Estado == "Rechazada")
+            {
+                TempData["Error"] = "Esta excusa ya fue procesada y no puede modificarse.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            if (estado != "Aprobada" && estado != "Rechazada")
+            {
+                TempData["Error"] = "El estado proporcionado no es válido.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            await _excusaRepo.ActualizarEstadoAsync(idExcusa, estado, motivoDecision);
+
+            TempData["Exito"] = estado == "Aprobada"
+                ? "La excusa fue aprobada correctamente."
+                : "La excusa fue rechazada correctamente.";
+
+            return RedirectToAction("Index", "Dashboard");
+        }
+
         // ── Helpers privados ──────────────────────────────────────────────────
 
         private async Task<List<SelectListItem>> BuildStudentListAsync(int idInstitucion)

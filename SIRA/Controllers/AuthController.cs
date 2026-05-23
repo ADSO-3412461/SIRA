@@ -65,6 +65,9 @@ namespace SIRA.Controllers
                 new AuthenticationProperties { IsPersistent = false });
 
             HttpContext.Session.SetInt32("EsSuperUsuario", usuario.EsSuperUsuario ? 1 : 0);
+            HttpContext.Session.SetInt32("EsRoot",         usuario.EsRoot         ? 1 : 0);
+            HttpContext.Session.SetInt32("IdUsuario",      usuario.IdUsuario);
+            HttpContext.Session.SetString("Alias",         usuario.Alias);
 
             _logger.LogInformation("Usuario {Alias} inició sesión.", usuario.Alias);
             return RedirectToAction("Index", "Dashboard");

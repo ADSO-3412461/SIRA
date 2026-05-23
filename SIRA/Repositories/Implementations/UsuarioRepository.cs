@@ -34,5 +34,13 @@ namespace SIRA.Repositories.Implementations
             usuario.EsActivo = esActivo;
             await _context.SaveChangesAsync();
         }
+
+        public async Task ActualizarSuperUsuarioAsync(int idUsuario, bool esSuperUsuario)
+        {
+            var usuario = await _context.Usuarios.FindAsync(idUsuario);
+            if (usuario == null) return;
+            usuario.EsSuperUsuario = esSuperUsuario;
+            await _context.SaveChangesAsync();
+        }
     }
 }
