@@ -8,6 +8,7 @@ namespace SIRA.Repositories.Interfaces
         Task<IEnumerable<Estudiante>> ObtenerPorInstitucionAsync(int idInstitucion);
         Task<Estudiante?> ObtenerPorIdAsync(int id);
         Task AgregarAsync(Estudiante estudiante);
+        Task ActualizarAsync(Estudiante estudiante);
         Task<bool> ExisteDocumentoAsync(string numeroDocumento);
     }
 }

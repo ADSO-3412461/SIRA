@@ -10,21 +10,24 @@ namespace SIRA.Controllers
     [Authorize]
     public class EstudiantesController : Controller
     {
-        private readonly IEstudianteRepository          _estudianteRepo;
-        private readonly IAcudienteRepository           _acudienteRepo;
-        private readonly ITipoDocumentoRepository       _tipoDocRepo;
-        private readonly ILogger<EstudiantesController> _logger;
+        private readonly IEstudianteRepository           _estudianteRepo;
+        private readonly IAcudienteRepository            _acudienteRepo;
+        private readonly ITipoDocumentoRepository        _tipoDocRepo;
+        private readonly IInstitucionEducativaRepository _institucionRepo;
+        private readonly ILogger<EstudiantesController>  _logger;
 
         public EstudiantesController(
-            IEstudianteRepository           estudianteRepo,
-            IAcudienteRepository            acudienteRepo,
-            ITipoDocumentoRepository        tipoDocRepo,
-            ILogger<EstudiantesController>  logger)
+            IEstudianteRepository            estudianteRepo,
+            IAcudienteRepository             acudienteRepo,
+            ITipoDocumentoRepository         tipoDocRepo,
+            IInstitucionEducativaRepository  institucionRepo,
+            ILogger<EstudiantesController>   logger)
         {
-            _estudianteRepo = estudianteRepo;
-            _acudienteRepo  = acudienteRepo;
-            _tipoDocRepo    = tipoDocRepo;
-            _logger         = logger;
+            _estudianteRepo  = estudianteRepo;
+            _acudienteRepo   = acudienteRepo;
+            _tipoDocRepo     = tipoDocRepo;
+            _institucionRepo = institucionRepo;
+            _logger          = logger;
         }
 
         // GET /Estudiantes/Crear
@@ -113,6 +116,79 @@ namespace SIRA.Controllers
                 nombreCompleto = acudiente.NombreCompleto,
                 correo         = acudiente.Correo
             });
+        }
+
+        // GET /Estudiantes/Editar/{id}
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
+                return RedirectToAction("Index", "Dashboard");
+
+            var estudiante = await _estudianteRepo.ObtenerPorIdAsync(id);
+            if (estudiante == null)
+            {
+                TempData["Error"] = "Estudiante no encontrado.";
+                return RedirectToAction(nameof(Consultar));
+            }
+
+            var vm = new EstudianteEditarViewModel
+            {
+                IdEstudiante           = estudiante.IdEstudiante,
+                NombreCompleto         = estudiante.NombreCompleto ?? string.Empty,
+                NumeroDocumento        = estudiante.NumeroDocumento ?? string.Empty,
+                IdTipoDocumento        = estudiante.IdTipoDocumento,
+                IdAcudiente            = estudiante.IdAcudiente,
+                IdInstitucionEducativa = estudiante.IdInstitucionEducativa,
+                TiposDocumento         = await BuildTiposDocumentoAsync(),
+                Acudientes             = await BuildAcudientesAsync(),
+                InstitucionesEducativas = await BuildInstitucionesAsync()
+            };
+
+            return View(vm);
+        }
+
+        // POST /Estudiantes/Editar
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(EstudianteEditarViewModel vm)
+        {
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
+                return RedirectToAction("Index", "Dashboard");
+
+            if (!ModelState.IsValid)
+            {
+                vm.TiposDocumento          = await BuildTiposDocumentoAsync();
+                vm.Acudientes              = await BuildAcudientesAsync();
+                vm.InstitucionesEducativas = await BuildInstitucionesAsync();
+                return View(vm);
+            }
+
+            try
+            {
+                var actualizado = new Estudiante
+                {
+                    IdEstudiante           = vm.IdEstudiante,
+                    NombreCompleto         = vm.NombreCompleto,
+                    NumeroDocumento        = vm.NumeroDocumento,
+                    IdTipoDocumento        = vm.IdTipoDocumento!.Value,
+                    IdAcudiente            = vm.IdAcudiente,
+                    IdInstitucionEducativa = vm.IdInstitucionEducativa
+                };
+
+                await _estudianteRepo.ActualizarAsync(actualizado);
+                TempData["Exito"] = "Estudiante actualizado exitosamente.";
+                return RedirectToAction(nameof(Consultar));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar estudiante {Id}.", vm.IdEstudiante);
+                ModelState.AddModelError(string.Empty, "Ocurrió un error al guardar. Intente de nuevo.");
+                vm.TiposDocumento          = await BuildTiposDocumentoAsync();
+                vm.Acudientes              = await BuildAcudientesAsync();
+                vm.InstitucionesEducativas = await BuildInstitucionesAsync();
+                return View(vm);
+            }
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
