@@ -83,6 +83,13 @@ namespace SIRA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ExcusaViewModel vm, int idInstitucion)
         {
+            // ── Verificar que idInstitucion sea válido ────────────────────────
+            if (idInstitucion <= 0)
+            {
+                TempData["Error"] = "No se pudo identificar la institución.";
+                return RedirectToAction("Instituciones", "Home");
+            }
+
             // ── Verificar que la institución sigue activa ─────────────────────
             var institucion = await _institucionRepo.ObtenerPorIdAsync(idInstitucion);
             if (institucion == null || !institucion.EsActivo)
@@ -136,10 +143,11 @@ namespace SIRA.Controllers
             // ── Guardar excusa ────────────────────────────────────────────────
             var excusa = new Excusa
             {
-                IdEstudiante       = vm.IdEstudiante!.Value,
-                MotivoInasistencia = vm.MotivoInasistencia,
-                Estado             = "Por revisar",
-                FechaHoraRegistro  = DateTime.Now
+                IdEstudiante              = vm.IdEstudiante!.Value,
+                MotivoInasistencia        = vm.MotivoInasistencia,
+                Estado                    = "Por revisar",
+                FechaHoraRegistro         = DateTime.Now,
+                IdInstitucionEducativa    = idInstitucion
             };
 
             try

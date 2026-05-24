@@ -6,5 +6,6 @@ namespace SIRA.Repositories.Interfaces
     {
         Task RegistrarAsync(Auditoria auditoria);
         Task<IEnumerable<Auditoria>> ObtenerUltimasAsync(int cantidad = 50);
+        Task<(List<Auditoria> Registros, int TotalRegistros)> ObtenerPaginadoAsync(int pagina, int registrosPorPagina);
     }
 }

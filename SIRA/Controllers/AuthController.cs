@@ -9,13 +9,21 @@ namespace SIRA.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly IUsuarioRepository _usuarioRepo;
-        private readonly ILogger<AuthController> _logger;
+        private readonly IUsuarioRepository              _usuarioRepo;
+        private readonly IAdministradorRepository        _administradorRepo;
+        private readonly IInstitucionEducativaRepository _institucionRepo;
+        private readonly ILogger<AuthController>         _logger;
 
-        public AuthController(IUsuarioRepository usuarioRepo, ILogger<AuthController> logger)
+        public AuthController(
+            IUsuarioRepository              usuarioRepo,
+            IAdministradorRepository        administradorRepo,
+            IInstitucionEducativaRepository institucionRepo,
+            ILogger<AuthController>         logger)
         {
-            _usuarioRepo = usuarioRepo;
-            _logger      = logger;
+            _usuarioRepo       = usuarioRepo;
+            _administradorRepo = administradorRepo;
+            _institucionRepo   = institucionRepo;
+            _logger            = logger;
         }
 
         // GET /Auth/Login
@@ -68,6 +76,21 @@ namespace SIRA.Controllers
             HttpContext.Session.SetInt32("EsRoot",         usuario.EsRoot         ? 1 : 0);
             HttpContext.Session.SetInt32("IdUsuario",      usuario.IdUsuario);
             HttpContext.Session.SetString("Alias",         usuario.Alias);
+
+            // Resolver institución del administrador logueado
+            int idInstitucion = 0;
+            if (!usuario.EsSuperUsuario && !usuario.EsRoot)
+            {
+                var admin = await _administradorRepo.ObtenerPorUsuarioAsync(usuario.IdUsuario);
+                if (admin != null)
+                {
+                    var instituciones = await _institucionRepo.ObtenerTodosAsync();
+                    var inst = instituciones.FirstOrDefault(
+                        i => i.IdAdministrador == admin.IdAdministrador);
+                    idInstitucion = inst?.IdInstitucionEducativa ?? 0;
+                }
+            }
+            HttpContext.Session.SetInt32("IdInstitucion", idInstitucion);
 
             _logger.LogInformation("Usuario {Alias} inició sesión.", usuario.Alias);
             return RedirectToAction("Index", "Dashboard");

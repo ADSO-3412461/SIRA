@@ -40,10 +40,31 @@ namespace SIRA.Repositories.Implementations
                     a.NumeroDocumento == numeroDocumento);
         }
 
-        public async Task<IEnumerable<Acudiente>> ObtenerTodosAsync()
+        public async Task<IEnumerable<Acudiente>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario)
         {
-            return await _context.Acudientes
+            var query = _context.Acudientes
                 .Include(a => a.TipoDocumento)
+                .AsQueryable();
+
+            if (!esSuperUsuario)
+                query = query.Where(a => a.IdInstitucionEducativa == idInstitucion);
+
+            return await query
+                .OrderBy(a => a.NombreCompleto)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Acudiente>> ObtenerTodosConInstitucionAsync(int idInstitucion, bool esSuperUsuario)
+        {
+            var query = _context.Acudientes
+                .Include(a => a.TipoDocumento)
+                .Include(a => a.InstitucionEducativa)
+                .AsQueryable();
+
+            if (!esSuperUsuario)
+                query = query.Where(a => a.IdInstitucionEducativa == idInstitucion);
+
+            return await query
                 .OrderBy(a => a.NombreCompleto)
                 .ToListAsync();
         }
@@ -60,10 +81,11 @@ namespace SIRA.Repositories.Implementations
             var existente = await _context.Acudientes.FindAsync(acudiente.IdAcudiente);
             if (existente == null) return;
 
-            existente.NombreCompleto  = acudiente.NombreCompleto;
-            existente.IdTipoDocumento = acudiente.IdTipoDocumento;
-            existente.NumeroDocumento = acudiente.NumeroDocumento;
-            existente.Correo          = acudiente.Correo;
+            existente.NombreCompleto         = acudiente.NombreCompleto;
+            existente.IdTipoDocumento        = acudiente.IdTipoDocumento;
+            existente.NumeroDocumento        = acudiente.NumeroDocumento;
+            existente.Correo                 = acudiente.Correo;
+            existente.IdInstitucionEducativa = acudiente.IdInstitucionEducativa;
 
             await _context.SaveChangesAsync();
         }

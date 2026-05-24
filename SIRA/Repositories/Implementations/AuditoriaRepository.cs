@@ -27,5 +27,21 @@ namespace SIRA.Repositories.Implementations
                 .Take(cantidad)
                 .ToListAsync();
         }
+
+        public async Task<(List<Auditoria> Registros, int TotalRegistros)> ObtenerPaginadoAsync(
+            int pagina, int registrosPorPagina)
+        {
+            var query = _context.Auditorias
+                .OrderByDescending(a => a.FechaEjecucion);
+
+            int total = await query.CountAsync();
+
+            var registros = await query
+                .Skip((pagina - 1) * registrosPorPagina)
+                .Take(registrosPorPagina)
+                .ToListAsync();
+
+            return (registros, total);
+        }
     }
 }

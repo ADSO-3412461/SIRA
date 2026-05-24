@@ -31,9 +31,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 // ── EF Core / SQLite ─────────────────────────────────────────────────────────
-var dbPath = Path.Combine(builder.Environment.ContentRootPath, "sira_live.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseSqlite($"Data Source={dbPath}"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("SiraDb")));
 
 // ── Repositorios ─────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IExcusaRepository,        ExcusaRepository>();

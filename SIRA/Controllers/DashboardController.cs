@@ -38,7 +38,12 @@ namespace SIRA.Controllers
 
             if (pagina < 1) pagina = 1;
 
-            var (excusas, totalRegistros) = await _excusaRepo.ObtenerPaginadoAsync(pagina, registrosPorPagina);
+            int  idInstitucion  = HttpContext.Session.GetInt32("IdInstitucion")  ?? 0;
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
+            var (excusas, totalRegistros) = await _excusaRepo.ObtenerPaginadoAsync(
+                pagina, registrosPorPagina, idInstitucion, esSuperUsuario);
 
             var totalPaginas = totalRegistros == 0
                 ? 1

@@ -1,6 +1,11 @@
 @model SIRA.ViewModels.ConsolaSqlViewModel
 @{
     ViewData["Title"] = "Consola SQL";
+    int pIni = Math.Max(1, Model.PaginaActual - 2);
+    int pFin = Math.Min(Model.TotalPaginas, pIni + 4);
+    if (pFin - pIni < 4) pIni = Math.Max(1, pFin - 4);
+    int desde = Model.TotalRegistros == 0 ? 0 : (Model.PaginaActual - 1) * 10 + 1;
+    int hasta  = Math.Min(Model.PaginaActual * 10, Model.TotalRegistros);
 }
 
 <div class="page-dashboard">
@@ -93,7 +98,7 @@
 
         <!-- Historial de auditoría -->
         <h2 class="h5 fw-semibold mb-3" style="color:var(--sira-navy);">
-            <i class="bi bi-clock-history me-2"></i>Historial de ejecuciones (últimas 50)
+            <i class="bi bi-clock-history me-2"></i>Historial de ejecuciones
         </h2>
         <div class="card border-0 shadow-sm">
             <div class="card-body p-0">
@@ -148,6 +153,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Paginación -->
+        @if (Model.TotalPaginas > 1 || Model.TotalRegistros > 0)
+        {
+            <div class="d-flex flex-column align-items-center gap-2 py-3">
+
+                <nav aria-label="Paginación historial">
+                    <ul class="pagination pagination-sm mb-0">
+
+                        <!-- Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaAnterior ? $"/ConsolaSql?pagina={Model.PaginaActual - 1}" : "#")"
+                               aria-label="Anterior">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Números de página (ventana de 5) -->
+                        @for (int p = pIni; p <= pFin; p++)
+                        {
+                            <li class="page-item @(p == Model.PaginaActual ? "active" : "")">
+                                <a class="page-link" href="/ConsolaSql?pagina=@p">@p</a>
+                            </li>
+                        }
+
+                        <!-- Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaSiguiente ? $"/ConsolaSql?pagina={Model.PaginaActual + 1}" : "#")"
+                               aria-label="Siguiente">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+                <small class="text-muted">
+                    Mostrando @desde – @hasta de @Model.TotalRegistros ejecucione@(Model.TotalRegistros == 1 ? "" : "s")
+                </small>
+
+            </div>
+        }
 
     </div>
 </div>

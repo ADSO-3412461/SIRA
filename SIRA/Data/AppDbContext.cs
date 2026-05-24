@@ -23,12 +23,20 @@ namespace SIRA.Data
             modelBuilder.Entity<InstitucionEducativa>()
                 .HasOne(i => i.Administrador)
                 .WithMany()
-                .HasForeignKey(i => i.IdAdministrador);
+                .HasForeignKey(i => i.IdAdministrador)
+                .IsRequired(false);
 
             modelBuilder.Entity<Estudiante>()
                 .HasOne(e => e.InstitucionEducativa)
                 .WithMany()
-                .HasForeignKey(e => e.IdInstitucionEducativa);
+                .HasForeignKey(e => e.IdInstitucionEducativa)
+                .IsRequired(false);
+
+            modelBuilder.Entity<Acudiente>()
+                .HasOne(a => a.InstitucionEducativa)
+                .WithMany()
+                .HasForeignKey(a => a.IdInstitucionEducativa)
+                .IsRequired(false);
         }
     }
 }

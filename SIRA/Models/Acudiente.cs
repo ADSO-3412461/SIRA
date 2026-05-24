@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SIRA.Models.Entities;
 
 namespace SIRA.Models
 {
@@ -27,5 +28,11 @@ namespace SIRA.Models
 
         [ForeignKey(nameof(IdTipoDocumento))]
         public TipoDocumento? TipoDocumento { get; set; }
+
+        [Column("id_institucion_educativa")]
+        public int IdInstitucionEducativa { get; set; }
+
+        [ForeignKey(nameof(IdInstitucionEducativa))]
+        public InstitucionEducativa? InstitucionEducativa { get; set; }
     }
 }

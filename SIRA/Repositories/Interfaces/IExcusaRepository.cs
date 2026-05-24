@@ -7,12 +7,12 @@ namespace SIRA.Repositories.Interfaces
         Task AgregarAsync(Excusa excusa);
         Task AgregarEvidenciaAsync(EvidenciaExcusa evidencia);
         Task<Excusa?> ObtenerPorIdAsync(int id);
-        Task<IEnumerable<Excusa>> ObtenerTodosAsync();
+        Task<IEnumerable<Excusa>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario);
         Task<IEnumerable<Excusa>> ObtenerTodosConEvidenciaAsync();
         Task<EvidenciaExcusa?> ObtenerEvidenciaPorExcusaAsync(int idExcusa);
         Task ActualizarDecisionAsync(int idExcusa, string estado, string motivoDecision, int idAdministrador);
         Task ActualizarEstadoAsync(int idExcusa, string estado, string motivoDecision);
         Task<Excusa?> ObtenerConEstudianteYAcudienteAsync(int idExcusa);
-        Task<(List<Excusa> Excusas, int TotalRegistros)> ObtenerPaginadoAsync(int pagina, int registrosPorPagina);
+        Task<(List<Excusa> Excusas, int TotalRegistros)> ObtenerPaginadoAsync(int pagina, int registrosPorPagina, int idInstitucion, bool esSuperUsuario);
     }
 }

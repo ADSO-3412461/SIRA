@@ -8,7 +8,8 @@ namespace SIRA.Repositories.Interfaces
         Task<bool> ExisteDocumentoAsync(string numeroDocumento);
         Task<bool> ExisteCorreoAsync(string correo);
         Task<Acudiente?> BuscarPorDocumentoAsync(int idTipoDocumento, string numeroDocumento);
-        Task<IEnumerable<Acudiente>> ObtenerTodosAsync();
+        Task<IEnumerable<Acudiente>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario);
+        Task<IEnumerable<Acudiente>> ObtenerTodosConInstitucionAsync(int idInstitucion, bool esSuperUsuario);
         Task<Acudiente?> ObtenerPorIdAsync(int idAcudiente);
         Task ActualizarAsync(Acudiente acudiente);
     }

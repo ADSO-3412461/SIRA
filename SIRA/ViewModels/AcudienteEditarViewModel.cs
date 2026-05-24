@@ -22,5 +22,8 @@ namespace SIRA.ViewModels
         public int IdTipoDocumento { get; set; }
 
         public List<SelectListItem> TiposDocumento { get; set; } = new();
+
+        public int IdInstitucionEducativa { get; set; }
+        public List<SelectListItem> Instituciones { get; set; } = new();
     }
 }

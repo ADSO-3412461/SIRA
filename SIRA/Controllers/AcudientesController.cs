@@ -10,18 +10,21 @@ namespace SIRA.Controllers
     [Authorize]
     public class AcudientesController : Controller
     {
-        private readonly IAcudienteRepository           _acudienteRepo;
-        private readonly ITipoDocumentoRepository       _tipoDocRepo;
+        private readonly IAcudienteRepository            _acudienteRepo;
+        private readonly ITipoDocumentoRepository        _tipoDocRepo;
+        private readonly IInstitucionEducativaRepository _institucionRepo;
         private readonly ILogger<AcudientesController>  _logger;
 
         public AcudientesController(
-            IAcudienteRepository          acudienteRepo,
-            ITipoDocumentoRepository      tipoDocRepo,
-            ILogger<AcudientesController> logger)
+            IAcudienteRepository             acudienteRepo,
+            ITipoDocumentoRepository         tipoDocRepo,
+            IInstitucionEducativaRepository  institucionRepo,
+            ILogger<AcudientesController>    logger)
         {
-            _acudienteRepo = acudienteRepo;
-            _tipoDocRepo   = tipoDocRepo;
-            _logger        = logger;
+            _acudienteRepo   = acudienteRepo;
+            _tipoDocRepo     = tipoDocRepo;
+            _institucionRepo = institucionRepo;
+            _logger          = logger;
         }
 
         // GET /Acudientes/Crear
@@ -92,7 +95,11 @@ namespace SIRA.Controllers
         [HttpGet]
         public async Task<IActionResult> Consultar()
         {
-            var acudientes = await _acudienteRepo.ObtenerTodosAsync();
+            int  idInstitucion  = HttpContext.Session.GetInt32("IdInstitucion")  ?? 0;
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
+            var acudientes = await _acudienteRepo.ObtenerTodosConInstitucionAsync(idInstitucion, esSuperUsuario);
             return View(acudientes);
         }
 
@@ -107,14 +114,19 @@ namespace SIRA.Controllers
                 return RedirectToAction(nameof(Consultar));
             }
 
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
             var vm = new AcudienteEditarViewModel
             {
-                IdAcudiente     = acudiente.IdAcudiente,
-                NombreCompleto  = acudiente.NombreCompleto  ?? string.Empty,
-                NumeroDocumento = acudiente.NumeroDocumento ?? string.Empty,
-                Correo          = acudiente.Correo          ?? string.Empty,
-                IdTipoDocumento = acudiente.IdTipoDocumento,
-                TiposDocumento  = await BuildTiposDocumentoAsync()
+                IdAcudiente            = acudiente.IdAcudiente,
+                NombreCompleto         = acudiente.NombreCompleto  ?? string.Empty,
+                NumeroDocumento        = acudiente.NumeroDocumento ?? string.Empty,
+                Correo                 = acudiente.Correo          ?? string.Empty,
+                IdTipoDocumento        = acudiente.IdTipoDocumento,
+                IdInstitucionEducativa = acudiente.IdInstitucionEducativa,
+                TiposDocumento         = await BuildTiposDocumentoAsync(),
+                Instituciones          = esSuperUsuario ? await BuildInstitucionesAsync() : new()
             };
 
             return View(vm);
@@ -125,10 +137,28 @@ namespace SIRA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(AcudienteEditarViewModel vm)
         {
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
             if (!ModelState.IsValid)
             {
                 vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                vm.Instituciones  = esSuperUsuario ? await BuildInstitucionesAsync() : new();
                 return View(vm);
+            }
+
+            if (esSuperUsuario && vm.IdInstitucionEducativa > 0)
+            {
+                var todas = await _institucionRepo.ObtenerParaDropdownAsync();
+                var inst = todas.FirstOrDefault(i => i.IdInstitucionEducativa == vm.IdInstitucionEducativa);
+                if (inst != null && !inst.EsActivo)
+                {
+                    ModelState.AddModelError(nameof(vm.IdInstitucionEducativa),
+                        "La institución seleccionada está inactiva. Seleccione una institución activa.");
+                    vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                    vm.Instituciones  = await BuildInstitucionesAsync();
+                    return View(vm);
+                }
             }
 
             var actual = await _acudienteRepo.ObtenerPorIdAsync(vm.IdAcudiente);
@@ -144,6 +174,7 @@ namespace SIRA.Controllers
                 ModelState.AddModelError(nameof(vm.Correo),
                     "El correo ya está registrado por otro acudiente.");
                 vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                vm.Instituciones  = esSuperUsuario ? await BuildInstitucionesAsync() : new();
                 return View(vm);
             }
 
@@ -153,6 +184,7 @@ namespace SIRA.Controllers
                 ModelState.AddModelError(nameof(vm.NumeroDocumento),
                     "El número de documento ya está registrado.");
                 vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                vm.Instituciones  = esSuperUsuario ? await BuildInstitucionesAsync() : new();
                 return View(vm);
             }
 
@@ -160,12 +192,13 @@ namespace SIRA.Controllers
             {
                 await _acudienteRepo.ActualizarAsync(new Acudiente
                 {
-                    IdAcudiente     = vm.IdAcudiente,
-                    NombreCompleto  = vm.NombreCompleto,
-                    IdTipoDocumento = vm.IdTipoDocumento,
-                    NumeroDocumento = vm.NumeroDocumento,
-                    Correo          = vm.Correo,
-                    Contrasena      = actual.Contrasena
+                    IdAcudiente            = vm.IdAcudiente,
+                    NombreCompleto         = vm.NombreCompleto,
+                    IdTipoDocumento        = vm.IdTipoDocumento,
+                    NumeroDocumento        = vm.NumeroDocumento,
+                    Correo                 = vm.Correo,
+                    Contrasena             = actual.Contrasena,
+                    IdInstitucionEducativa = esSuperUsuario ? vm.IdInstitucionEducativa : actual.IdInstitucionEducativa
                 });
 
                 TempData["Exito"] = "Acudiente actualizado exitosamente.";
@@ -177,11 +210,34 @@ namespace SIRA.Controllers
                 ModelState.AddModelError(string.Empty,
                     "Ocurrió un error al guardar. Intente de nuevo.");
                 vm.TiposDocumento = await BuildTiposDocumentoAsync();
+                vm.Instituciones  = esSuperUsuario ? await BuildInstitucionesAsync() : new();
                 return View(vm);
             }
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
+
+        private async Task<List<SelectListItem>> BuildInstitucionesAsync()
+        {
+            var instituciones = await _institucionRepo.ObtenerParaDropdownAsync();
+
+            var items = instituciones
+                .Select(i => new SelectListItem
+                {
+                    Value = i.IdInstitucionEducativa.ToString(),
+                    Text  = i.EsActivo
+                        ? (i.NombreInstitucion ?? "—")
+                        : $"{i.NombreInstitucion} (Inactiva)"
+                }).ToList();
+
+            items.Insert(0, new SelectListItem
+            {
+                Value = "0",
+                Text  = "-- Sin institución --"
+            });
+
+            return items;
+        }
 
         private async Task<List<SelectListItem>> BuildTiposDocumentoAsync()
         {

@@ -56,7 +56,7 @@
                     </div>
 
                     <!-- Correo -->
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label asp-for="Correo" class="form-label fw-semibold">
                             Correo Electrónico <span class="text-danger">*</span>
                         </label>
@@ -64,6 +64,23 @@
                                placeholder="correo@ejemplo.com" type="email" />
                         <div class="invalid-feedback" id="errCorreo"></div>
                     </div>
+
+                    <!-- Institución Educativa (solo super usuario / root) -->
+                    @if (Model.Instituciones != null && Model.Instituciones.Any())
+                    {
+                        <div class="mb-4">
+                            <label asp-for="IdInstitucionEducativa" class="form-label fw-semibold">
+                                Institución Educativa
+                            </label>
+                            <select asp-for="IdInstitucionEducativa" asp-items="Model.Instituciones"
+                                    class="form-select" id="selectInstitucion"></select>
+                            <span asp-validation-for="IdInstitucionEducativa" class="text-danger small"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="IdInstitucionEducativa" />
+                    }
 
                     <!-- Botones -->
                     <div class="d-flex gap-2">

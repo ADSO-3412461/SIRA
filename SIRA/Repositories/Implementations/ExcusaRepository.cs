@@ -33,10 +33,16 @@ namespace SIRA.Repositories.Implementations
                 .FirstOrDefaultAsync(e => e.IdExcusa == id);
         }
 
-        public async Task<IEnumerable<Excusa>> ObtenerTodosAsync()
+        public async Task<IEnumerable<Excusa>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario)
         {
-            return await _context.Excusas
+            var query = _context.Excusas
                 .Include(e => e.Estudiante)
+                .AsQueryable();
+
+            if (!esSuperUsuario)
+                query = query.Where(e => e.IdInstitucionEducativa == idInstitucion);
+
+            return await query
                 .OrderByDescending(e => e.FechaHoraRegistro)
                 .ToListAsync();
         }
@@ -100,12 +106,17 @@ namespace SIRA.Repositories.Implementations
         }
 
         public async Task<(List<Excusa> Excusas, int TotalRegistros)> ObtenerPaginadoAsync(
-            int pagina, int registrosPorPagina)
+            int pagina, int registrosPorPagina, int idInstitucion, bool esSuperUsuario)
         {
             var query = _context.Excusas
                 .Include(e => e.Estudiante).ThenInclude(est => est!.TipoDocumento)
                 .Include(e => e.Evidencia)
-                .OrderByDescending(e => e.FechaHoraRegistro);
+                .AsQueryable();
+
+            if (!esSuperUsuario)
+                query = query.Where(e => e.IdInstitucionEducativa == idInstitucion);
+
+            query = query.OrderByDescending(e => e.FechaHoraRegistro);
 
             var total   = await query.CountAsync();
             var excusas = await query
