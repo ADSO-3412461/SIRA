@@ -177,29 +177,66 @@ namespace SIRA.Controllers
             }
 
             // ── Enviar correo (fallo no impide la confirmación al usuario) ────
-            try
-            {
-                var estudiante = await _estudianteRepo.ObtenerPorIdAsync(excusa.IdEstudiante);
-                var admin      = await _administradorRepo.ObtenerPrimeroAsync();
-                var toEmail    = admin?.Correo;
+            // Regla: primero al admin de la institución; si falla, fallback a super usuarios.
+            var estudiante  = await _estudianteRepo.ObtenerPorIdAsync(excusa.IdEstudiante);
+            var correoAdmin = institucion.Administrador?.Correo;
+            bool enviadoAdmin = false;
 
-                if (estudiante != null && !string.IsNullOrEmpty(toEmail))
+            if (estudiante != null && !string.IsNullOrWhiteSpace(correoAdmin))
+            {
+                try
                 {
                     await _emailService.EnviarNotificacionExcusaAsync(
-                        estudiante, excusa, archivoBytes, archivoNombre, archivoMime, toEmail);
+                        estudiante, excusa, archivoBytes, archivoNombre, archivoMime, correoAdmin);
+                    enviadoAdmin = true;
+                    _logger.LogInformation(
+                        "Correo de excusa {IdExcusa} enviado al admin de la institución ({Correo}).",
+                        excusa.IdExcusa, correoAdmin);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Falló envío al admin de la institución ({Correo}) para excusa {IdExcusa}. Se intentará fallback a super usuarios.",
+                        correoAdmin, excusa.IdExcusa);
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Excusa {IdExcusa}: admin de la institución sin correo registrado. Se intentará fallback a super usuarios.",
+                    excusa.IdExcusa);
+            }
+
+            // Fallback: enviar a super usuarios si no se logró enviar al admin
+            if (!enviadoAdmin && estudiante != null)
+            {
+                var correosSU = await _administradorRepo.ObtenerCorreosSuperUsuariosAsync();
+                if (correosSU.Count == 0)
+                {
+                    _logger.LogWarning(
+                        "Excusa {IdExcusa}: no hay super usuarios con correo registrado para fallback.",
+                        excusa.IdExcusa);
                 }
                 else
                 {
-                    _logger.LogWarning(
-                        "Correo no enviado para excusa {IdExcusa}: administrador sin correo registrado.",
-                        excusa.IdExcusa);
+                    foreach (var correoSU in correosSU)
+                    {
+                        try
+                        {
+                            await _emailService.EnviarNotificacionExcusaAsync(
+                                estudiante, excusa, archivoBytes, archivoNombre, archivoMime, correoSU);
+                            _logger.LogInformation(
+                                "Correo de excusa {IdExcusa} enviado a super usuario ({Correo}) por fallback.",
+                                excusa.IdExcusa, correoSU);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex,
+                                "Falló envío de fallback a super usuario ({Correo}) para excusa {IdExcusa}.",
+                                correoSU, excusa.IdExcusa);
+                        }
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "No se pudo enviar el correo para la excusa {IdExcusa}.",
-                    excusa.IdExcusa);
             }
 
             TempData["Exito"] = "La excusa fue registrada exitosamente.";
