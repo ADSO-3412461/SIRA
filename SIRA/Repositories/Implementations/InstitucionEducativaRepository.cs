@@ -20,6 +20,11 @@ namespace SIRA.Repositories.Implementations
                 .OrderBy(i => i.NombreInstitucion)
                 .ToListAsync();
 
+        public async Task<IEnumerable<InstitucionEducativa>> ObtenerParaDropdownAsync()
+            => await _context.InstitucionesEducativas
+                .OrderBy(i => i.NombreInstitucion)
+                .ToListAsync();
+
         public async Task<InstitucionEducativa?> ObtenerPorIdAsync(int id)
             => await _context.InstitucionesEducativas
                 .Include(i => i.Administrador)

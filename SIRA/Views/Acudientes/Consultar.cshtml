@@ -37,6 +37,21 @@
             </div>
         </div>
 
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
         <!-- Buscador en cliente -->
         <div class="mb-3">
             <input type="text" id="filtro" class="form-control" style="max-width:360px;"
@@ -54,14 +69,16 @@
                                 <th class="py-3">Nombre Completo</th>
                                 <th class="py-3">Tipo Doc.</th>
                                 <th class="py-3">N° Documento</th>
-                                <th class="py-3 pe-4">Correo</th>
+                                <th class="py-3">Correo</th>
+                                <th class="py-3">Institución Educativa</th>
+                                <th class="py-3 pe-4 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (!lista.Any())
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-5">
+                                    <td colspan="7" class="text-center text-muted py-5">
                                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                         No hay acudientes registrados aún.
                                     </td>
@@ -81,7 +98,24 @@
                                             </span>
                                         </td>
                                         <td class="font-monospace small">@(a.NumeroDocumento ?? "—")</td>
-                                        <td class="pe-4 small">@(a.Correo ?? "—")</td>
+                                        <td class="small">@(a.Correo ?? "—")</td>
+                                        <td>
+                                            @if (a.IdInstitucionEducativa == 0 || a.InstitucionEducativa == null)
+                                            {
+                                                <span class="badge bg-warning text-dark">Sin institución</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="small">@a.InstitucionEducativa.NombreInstitucion</span>
+                                            }
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            <a asp-controller="Acudientes" asp-action="Editar"
+                                               asp-route-id="@a.IdAcudiente"
+                                               class="btn btn-sm btn-outline-primary fw-semibold">
+                                                <i class="bi bi-pencil-fill me-1"></i>Editar
+                                            </a>
+                                        </td>
                                     </tr>
                                 }
                             }

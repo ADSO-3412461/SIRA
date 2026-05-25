@@ -38,5 +38,19 @@ namespace SIRA.Repositories.Implementations
                 .OrderBy(a => a.NombreCompleto)
                 .ToListAsync();
         }
+
+        public async Task<List<string>> ObtenerCorreosSuperUsuariosAsync()
+        {
+            return await _context.Administradores
+                .Include(a => a.Usuario)
+                .Where(a => a.Usuario != null
+                         && a.Usuario.EsActivo
+                         && (a.Usuario.EsSuperUsuario || a.Usuario.EsRoot)
+                         && a.Correo != null
+                         && a.Correo != "")
+                .Select(a => a.Correo!)
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }

@@ -7,10 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Update="sira.db">
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </Content>
-    <Content Update="sira_live.db">
+    <Content Update="*.db">
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </Content>
   </ItemGroup>

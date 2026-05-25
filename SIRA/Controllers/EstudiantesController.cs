@@ -92,7 +92,11 @@ namespace SIRA.Controllers
         [HttpGet]
         public async Task<IActionResult> Consultar()
         {
-            var estudiantes = await _estudianteRepo.ObtenerTodosAsync();
+            int  idInstitucion  = HttpContext.Session.GetInt32("IdInstitucion")  ?? 0;
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
+            var estudiantes = await _estudianteRepo.ObtenerTodosAsync(idInstitucion, esSuperUsuario);
             return View(estudiantes);
         }
 
@@ -164,6 +168,21 @@ namespace SIRA.Controllers
                 return View(vm);
             }
 
+            if (vm.IdInstitucionEducativa > 0)
+            {
+                var todas = await _institucionRepo.ObtenerParaDropdownAsync();
+                var inst = todas.FirstOrDefault(i => i.IdInstitucionEducativa == vm.IdInstitucionEducativa.Value);
+                if (inst != null && !inst.EsActivo)
+                {
+                    ModelState.AddModelError(nameof(vm.IdInstitucionEducativa),
+                        "La institución seleccionada está inactiva. Seleccione una institución activa.");
+                    vm.TiposDocumento          = await BuildTiposDocumentoAsync();
+                    vm.Acudientes              = await BuildAcudientesAsync();
+                    vm.InstitucionesEducativas = await BuildInstitucionesAsync();
+                    return View(vm);
+                }
+            }
+
             try
             {
                 var actualizado = new Estudiante
@@ -216,7 +235,11 @@ namespace SIRA.Controllers
 
         private async Task<List<SelectListItem>> BuildAcudientesAsync()
         {
-            var acudientes = await _acudienteRepo.ObtenerTodosAsync();
+            int  idInstitucion  = HttpContext.Session.GetInt32("IdInstitucion")  ?? 0;
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
+            var acudientes = await _acudienteRepo.ObtenerTodosAsync(idInstitucion, esSuperUsuario);
 
             var items = acudientes.OrderBy(a => a.NombreCompleto).Select(a => new SelectListItem
             {
@@ -235,15 +258,15 @@ namespace SIRA.Controllers
 
         private async Task<List<SelectListItem>> BuildInstitucionesAsync()
         {
-            var instituciones = await _institucionRepo.ObtenerTodosAsync();
+            var instituciones = await _institucionRepo.ObtenerParaDropdownAsync();
 
             var items = instituciones
-                .Where(i => i.EsActivo)
-                .OrderBy(i => i.NombreInstitucion)
                 .Select(i => new SelectListItem
                 {
                     Value = i.IdInstitucionEducativa.ToString(),
-                    Text  = i.NombreInstitucion ?? "—"
+                    Text  = i.EsActivo
+                        ? (i.NombreInstitucion ?? "—")
+                        : $"{i.NombreInstitucion} (Inactiva)"
                 }).ToList();
 
             items.Insert(0, new SelectListItem

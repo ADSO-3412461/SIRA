@@ -36,5 +36,8 @@ namespace SIRA.Models
         public Administrador? Administrador { get; set; }
 
         public EvidenciaExcusa? Evidencia { get; set; }
+
+        [Column("id_institucion_educativa")]
+        public int IdInstitucionEducativa { get; set; }
     }
 }

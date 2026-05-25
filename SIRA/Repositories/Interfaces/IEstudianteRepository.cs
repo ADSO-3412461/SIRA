@@ -4,7 +4,7 @@ namespace SIRA.Repositories.Interfaces
 {
     public interface IEstudianteRepository
     {
-        Task<IEnumerable<Estudiante>> ObtenerTodosAsync();
+        Task<IEnumerable<Estudiante>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario);
         Task<IEnumerable<Estudiante>> ObtenerPorInstitucionAsync(int idInstitucion);
         Task<Estudiante?> ObtenerPorIdAsync(int id);
         Task AgregarAsync(Estudiante estudiante);

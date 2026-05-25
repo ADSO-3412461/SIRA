@@ -3,8 +3,8 @@
     ViewData["Title"] = "Editar Estudiante";
 }
 
-<div class="page-dashboard">
-    <div class="container-fluid px-4">
+<div class="d-flex justify-content-center align-items-center min-vh-100">
+    <div style="width:100%;max-width:600px;">
 
         <!-- Cabecera -->
         <div class="d-flex align-items-center gap-3 mb-4">
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm" style="max-width:640px;">
+        <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
 
                 <form id="formEditar" asp-action="Editar" method="post" novalidate>
@@ -69,6 +69,7 @@
                         </label>
                         <select asp-for="IdInstitucionEducativa" asp-items="Model.InstitucionesEducativas"
                                 class="form-select"></select>
+                        <span asp-validation-for="IdInstitucionEducativa" class="text-danger small"></span>
                     </div>
 
                     <!-- Botones -->

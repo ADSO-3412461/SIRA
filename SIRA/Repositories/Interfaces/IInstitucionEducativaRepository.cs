@@ -5,6 +5,7 @@ namespace SIRA.Repositories.Interfaces
     public interface IInstitucionEducativaRepository
     {
         Task<IEnumerable<InstitucionEducativa>> ObtenerTodosAsync();
+        Task<IEnumerable<InstitucionEducativa>> ObtenerParaDropdownAsync();
         Task<InstitucionEducativa?> ObtenerPorIdAsync(int id);
         Task AgregarAsync(InstitucionEducativa institucion);
         Task ActualizarAsync(InstitucionEducativa institucion);

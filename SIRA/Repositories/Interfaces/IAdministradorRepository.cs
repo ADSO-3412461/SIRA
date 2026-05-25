@@ -8,5 +8,6 @@ namespace SIRA.Repositories.Interfaces
         Task<Administrador?> ObtenerPorUsuarioAsync(int idUsuario);
         Task AgregarAsync(Administrador administrador);
         Task<IEnumerable<Administrador>> ObtenerTodosAsync();
+        Task<List<string>> ObtenerCorreosSuperUsuariosAsync();
     }
 }
