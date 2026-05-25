@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SIRA.Models;
+using SIRA.Models.Entities;
 
 namespace SIRA.Data
 {
@@ -15,18 +16,27 @@ namespace SIRA.Data
         public DbSet<Administrador> Administradores => Set<Administrador>();
         public DbSet<Acudiente>    Acudientes       => Set<Acudiente>();
         public DbSet<InstitucionEducativa> InstitucionesEducativas => Set<InstitucionEducativa>();
+        public DbSet<Auditoria>            Auditorias             => Set<Auditoria>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<InstitucionEducativa>()
                 .HasOne(i => i.Administrador)
                 .WithMany()
-                .HasForeignKey(i => i.IdAdministrador);
+                .HasForeignKey(i => i.IdAdministrador)
+                .IsRequired(false);
 
             modelBuilder.Entity<Estudiante>()
                 .HasOne(e => e.InstitucionEducativa)
                 .WithMany()
-                .HasForeignKey(e => e.IdInstitucionEducativa);
+                .HasForeignKey(e => e.IdInstitucionEducativa)
+                .IsRequired(false);
+
+            modelBuilder.Entity<Acudiente>()
+                .HasOne(a => a.InstitucionEducativa)
+                .WithMany()
+                .HasForeignKey(a => a.IdInstitucionEducativa)
+                .IsRequired(false);
         }
     }
 }

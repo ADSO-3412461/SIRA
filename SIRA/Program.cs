@@ -31,9 +31,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 // ── EF Core / SQLite ─────────────────────────────────────────────────────────
-var dbPath = Path.Combine(builder.Environment.ContentRootPath, "sira.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseSqlite($"Data Source={dbPath}"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("SiraDb")));
 
 // ── Repositorios ─────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IExcusaRepository,        ExcusaRepository>();
@@ -43,6 +42,7 @@ builder.Services.AddScoped<IAdministradorRepository, AdministradorRepository>();
 builder.Services.AddScoped<IAcudienteRepository,             AcudienteRepository>();
 builder.Services.AddScoped<ITipoDocumentoRepository,         TipoDocumentoRepository>();
 builder.Services.AddScoped<IInstitucionEducativaRepository,  InstitucionEducativaRepository>();
+builder.Services.AddScoped<IAuditoriaRepository,             AuditoriaRepository>();
 
 // ── Email ─────────────────────────────────────────────────────────────────────
 builder.Services.Configure<EmailSettings>(

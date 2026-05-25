@@ -35,13 +35,16 @@
                     </a>
                     <a asp-controller="Dashboard" asp-action="Administradores"
                        class="btn btn-sm btn-outline-secondary fw-semibold">
-                        <i class="bi bi-people-fill me-1"></i>Ver Administradores
+                        <i class="bi bi-people-fill me-1"></i>Administradores
                     </a>
-                    <button type="button" class="btn btn-sm fw-semibold"
-                            style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);"
-                            onclick="abrirModalAdmin()">
-                        <i class="bi bi-person-plus-fill me-1"></i>Agregar Administrador
-                    </button>
+                    @if (Context.Session.GetInt32("EsRoot") == 1)
+                    {
+                        <a asp-controller="ConsolaSql" asp-action="Index"
+                           class="btn btn-sm fw-semibold"
+                           style="background-color:#dc3545;color:#fff;border-color:#dc3545;">
+                            <i class="bi bi-terminal-fill me-1"></i>Consola SQL
+                        </a>
+                    }
                 }
                 <span class="badge rounded-pill px-3 py-2 fs-6"
                       style="background-color:var(--sira-navy);">
@@ -57,6 +60,21 @@
             int pIni   = Math.Max(1, Model.PaginaActual - 2);
             int pFin   = Math.Min(Model.TotalPaginas, pIni + 4);
             if (pFin - pIni < 4) pIni = Math.Max(1, pFin - 4);
+        }
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         }
 
         <!-- Tarjeta de la tabla -->
@@ -141,14 +159,39 @@
                                             }
                                         </td>
                                         <td class="text-center pe-4">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-secondary btn-accion"
-                                                    data-id="@fila.IdExcusa"
-                                                    data-nombre="@fila.NombreEstudiante"
-                                                    title="Registrar decisión"
-                                                    onclick="abrirModalDecision(this)">
-                                                <i class="bi bi-pencil-square me-1"></i>Acciones
-                                            </button>
+                                            @if (fila.Estado == "Aprobada")
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-success fw-semibold"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalInfoProcesada"
+                                                        data-estado="Aprobada">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Acciones
+                                                </button>
+                                            }
+                                            else if (fila.Estado == "Rechazada")
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger fw-semibold"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalInfoProcesada"
+                                                        data-estado="Rechazada">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Acciones
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-secondary fw-semibold"
+                                                        data-id="@fila.IdExcusa"
+                                                        data-nombre="@fila.NombreEstudiante"
+                                                        data-motivo="@fila.MotivoInasistencia"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalDecision"
+                                                        onclick="poblarModalDecision(this)">
+                                                    <i class="bi bi-pencil-square me-1"></i>Acciones
+                                                </button>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -206,6 +249,34 @@
     </div>
 </div>
 
+<!-- ── Modal Informativo Excusa Procesada ─────────────────────────────────── -->
+<div class="modal fade" id="modalInfoProcesada" tabindex="-1" aria-labelledby="modalInfoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalInfoLabel">
+                    <i class="bi bi-info-circle-fill me-2"></i>Excusa procesada
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-center">
+                <p class="mb-0 fs-6" id="msgProcesada"></p>
+            </div>
+
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary fw-semibold"
+                        data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-1"></i>Entendido
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <!-- ── Modal de Decisión ──────────────────────────────────────────────────── -->
 <div class="modal fade" id="modalDecision" tabindex="-1" aria-labelledby="modalDecisionLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -219,74 +290,51 @@
                         data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <form id="formDecision" novalidate>
+            <form id="formDecision" asp-controller="Excusas" asp-action="ActualizarEstado" method="post">
                 @Html.AntiForgeryToken()
-                <input type="hidden" id="hdnIdExcusa" name="IdExcusa" />
+                <input type="hidden" id="hdnIdExcusa"  name="idExcusa" />
+                <input type="hidden" id="hdnEstado"    name="estado" />
 
                 <div class="modal-body p-4">
 
                     <!-- Nombre del estudiante -->
-                    <div class="mb-4 p-3 rounded"
+                    <div class="mb-3 p-3 rounded"
                          style="background:var(--sira-grey-bg);border-left:4px solid var(--sira-accent);">
                         <small class="text-muted d-block">Estudiante</small>
                         <span class="fw-semibold" id="lblEstudiante"></span>
                     </div>
 
-                    <!-- Decisión: Aprobar / Rechazar -->
+                    <!-- Motivo de inasistencia -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            Decisión <span class="text-danger">*</span>
-                        </label>
-                        <div class="d-flex gap-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio"
-                                       name="Estado" value="Aprobada"
-                                       id="radAprobada" />
-                                <label class="form-check-label fw-semibold text-success"
-                                       for="radAprobada">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Aprobar
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio"
-                                       name="Estado" value="Rechazada"
-                                       id="radRechazada" />
-                                <label class="form-check-label fw-semibold text-danger"
-                                       for="radRechazada">
-                                    <i class="bi bi-x-circle-fill me-1"></i>Rechazar
-                                </label>
-                            </div>
-                        </div>
-                        <div class="text-danger small mt-1 d-none" id="err-estado">
-                            Seleccione una decisión.
-                        </div>
+                        <small class="text-muted d-block fw-semibold">Motivo de inasistencia</small>
+                        <span class="small" id="lblMotivoInasistencia"></span>
                     </div>
 
                     <!-- Motivo de la decisión -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="txtMotivoDecision">
-                            Motivo <span class="text-danger">*</span>
+                            Motivo de la decisión <span class="text-danger">*</span>
                         </label>
                         <textarea class="form-control" id="txtMotivoDecision"
-                                  name="MotivoDecision" rows="3"
+                                  name="motivoDecision" rows="3"
                                   placeholder="Ingrese el motivo de la decisión..."></textarea>
                         <div class="text-danger small mt-1 d-none" id="err-motivo">
                             El motivo es obligatorio.
                         </div>
                     </div>
 
-                    <!-- Alerta resultado -->
-                    <div id="alertDecision" class="alert d-none" role="alert"></div>
-
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary"
                             data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" id="btnRegistrar"
-                            class="btn btn-primary fw-semibold"
-                            style="background:var(--sira-accent);border-color:var(--sira-accent);">
-                        <i class="bi bi-send-fill me-2"></i>Registrar
+                    <button type="submit" class="btn btn-success fw-semibold"
+                            onclick="return setEstado('Aprobada')">
+                        <i class="bi bi-check-circle-fill me-1"></i>Aprobar
+                    </button>
+                    <button type="submit" class="btn btn-danger fw-semibold"
+                            onclick="return setEstado('Rechazada')">
+                        <i class="bi bi-x-circle-fill me-1"></i>Rechazar
                     </button>
                 </div>
             </form>
@@ -380,31 +428,25 @@
 
 @section Scripts {
 <script>
-    var _modalDecision = null;
-
-    function abrirModalDecision(btn) {
-        var modalEl = document.getElementById("modalDecision");
-        if (!modalEl) return;
-
-        // Poblar campos
-        document.getElementById("hdnIdExcusa").value = btn.getAttribute("data-id");
-        document.getElementById("lblEstudiante").textContent = btn.getAttribute("data-nombre");
-
-        // Limpiar estado anterior
-        document.querySelectorAll("[name='Estado']").forEach(function (r) { r.checked = false; });
-        document.getElementById("txtMotivoDecision").value = "";
-        document.getElementById("err-estado").classList.add("d-none");
-        document.getElementById("err-motivo").classList.add("d-none");
+    function poblarModalDecision(btn) {
+        document.getElementById("hdnIdExcusa").value              = btn.getAttribute("data-id");
+        document.getElementById("hdnEstado").value                = "";
+        document.getElementById("lblEstudiante").textContent      = btn.getAttribute("data-nombre");
+        document.getElementById("lblMotivoInasistencia").textContent = btn.getAttribute("data-motivo");
+        document.getElementById("txtMotivoDecision").value        = "";
         document.getElementById("txtMotivoDecision").classList.remove("is-invalid");
-        document.getElementById("alertDecision").className = "alert d-none";
-        document.getElementById("btnRegistrar").disabled = false;
-        document.getElementById("btnRegistrar").innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
+        document.getElementById("err-motivo").classList.add("d-none");
+    }
 
-        // Abrir modal explícitamente
-        if (!_modalDecision) {
-            _modalDecision = new bootstrap.Modal(modalEl);
+    function setEstado(estado) {
+        var motivo = document.getElementById("txtMotivoDecision").value.trim();
+        if (!motivo) {
+            document.getElementById("err-motivo").classList.remove("d-none");
+            document.getElementById("txtMotivoDecision").classList.add("is-invalid");
+            return false;
         }
-        _modalDecision.show();
+        document.getElementById("hdnEstado").value = estado;
+        return true;
     }
 
     // ── Modal Agregar Administrador ───────────────────────────────────────────
@@ -487,82 +529,17 @@
             });
         }
 
-        var form    = document.getElementById("formDecision");
-        var hdnId   = document.getElementById("hdnIdExcusa");
-        var btnReg  = document.getElementById("btnRegistrar");
-        var alertBox = document.getElementById("alertDecision");
-        var txtMotivo = document.getElementById("txtMotivoDecision");
-        var errEstado = document.getElementById("err-estado");
-        var errMotivo = document.getElementById("err-motivo");
-
-        // Limpiar errores en tiempo real
-        document.querySelectorAll("[name='Estado']").forEach(function (r) {
-            r.addEventListener("change", function () { errEstado.classList.add("d-none"); });
-        });
-        txtMotivo.addEventListener("input", function () {
-            if (txtMotivo.value.trim()) {
-                errMotivo.classList.add("d-none");
-                txtMotivo.classList.remove("is-invalid");
+        document.getElementById("txtMotivoDecision").addEventListener("input", function () {
+            if (this.value.trim()) {
+                document.getElementById("err-motivo").classList.add("d-none");
+                this.classList.remove("is-invalid");
             }
         });
 
-        // Envío AJAX
-        form.addEventListener("submit", async function (e) {
-            e.preventDefault();
-
-            var estadoEl = document.querySelector("[name='Estado']:checked");
-            var estado   = estadoEl ? estadoEl.value : "";
-            var motivo   = txtMotivo.value.trim();
-            var ok       = true;
-
-            if (!estado) { errEstado.classList.remove("d-none"); ok = false; }
-            if (!motivo) { errMotivo.classList.remove("d-none"); txtMotivo.classList.add("is-invalid"); ok = false; }
-            if (!ok) return;
-
-            btnReg.disabled = true;
-            btnReg.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Procesando...";
-
-            var token = form.querySelector("[name='__RequestVerificationToken']").value;
-            var body  = new URLSearchParams({
-                IdExcusa: hdnId.value,
-                Estado: estado,
-                MotivoDecision: motivo,
-                __RequestVerificationToken: token
-            });
-
-            try {
-                var resp = await fetch("/Dashboard/RegistrarDecision", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: body.toString()
-                });
-                var json = await resp.json();
-
-                if (json.success) {
-                    var badge = document.getElementById("badge-" + hdnId.value);
-                    if (badge) {
-                        var esCss  = json.estado === "Aprobada"  ? "bg-success"
-                                   : json.estado === "Rechazada" ? "bg-danger"
-                                   : "bg-warning text-dark";
-                        var esIcon = json.estado === "Aprobada"  ? "bi-check-circle-fill"
-                                   : json.estado === "Rechazada" ? "bi-x-circle-fill"
-                                   : "bi-hourglass-split";
-                        badge.className = "badge " + esCss;
-                        badge.innerHTML = "<i class=\"bi " + esIcon + " me-1\"></i>" + json.estado;
-                    }
-                    if (_modalDecision) _modalDecision.hide();
-                } else {
-                    alertBox.className   = "alert alert-danger";
-                    alertBox.textContent = json.message || "Ocurrió un error. Intente de nuevo.";
-                    btnReg.disabled  = false;
-                    btnReg.innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
-                }
-            } catch (err) {
-                alertBox.className   = "alert alert-danger";
-                alertBox.textContent = "Error de conexión. Intente de nuevo.";
-                btnReg.disabled  = false;
-                btnReg.innerHTML = "<i class=\"bi bi-send-fill me-2\"></i>Registrar";
-            }
+        document.getElementById("modalInfoProcesada").addEventListener("show.bs.modal", function (e) {
+            var estado = e.relatedTarget.getAttribute("data-estado");
+            document.getElementById("msgProcesada").textContent =
+                "Esta excusa ya fue " + estado + " y no puede ser modificada.";
         });
     });
 </script>

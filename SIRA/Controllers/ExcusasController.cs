@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SIRA.Models;
@@ -83,6 +84,13 @@ namespace SIRA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ExcusaViewModel vm, int idInstitucion)
         {
+            // ── Verificar que idInstitucion sea válido ────────────────────────
+            if (idInstitucion <= 0)
+            {
+                TempData["Error"] = "No se pudo identificar la institución.";
+                return RedirectToAction("Instituciones", "Home");
+            }
+
             // ── Verificar que la institución sigue activa ─────────────────────
             var institucion = await _institucionRepo.ObtenerPorIdAsync(idInstitucion);
             if (institucion == null || !institucion.EsActivo)
@@ -136,10 +144,11 @@ namespace SIRA.Controllers
             // ── Guardar excusa ────────────────────────────────────────────────
             var excusa = new Excusa
             {
-                IdEstudiante       = vm.IdEstudiante!.Value,
-                MotivoInasistencia = vm.MotivoInasistencia,
-                Estado             = "Por revisar",
-                FechaHoraRegistro  = DateTime.Now
+                IdEstudiante              = vm.IdEstudiante!.Value,
+                MotivoInasistencia        = vm.MotivoInasistencia,
+                Estado                    = "Por revisar",
+                FechaHoraRegistro         = DateTime.Now,
+                IdInstitucionEducativa    = idInstitucion
             };
 
             try
@@ -169,33 +178,145 @@ namespace SIRA.Controllers
             }
 
             // ── Enviar correo (fallo no impide la confirmación al usuario) ────
-            try
-            {
-                var estudiante = await _estudianteRepo.ObtenerPorIdAsync(excusa.IdEstudiante);
-                var admin      = await _administradorRepo.ObtenerPrimeroAsync();
-                var toEmail    = admin?.Correo;
+            // Regla: primero al admin de la institución; si falla, fallback a super usuarios.
+            var estudiante  = await _estudianteRepo.ObtenerPorIdAsync(excusa.IdEstudiante);
+            var correoAdmin = institucion.Administrador?.Correo;
+            bool enviadoAdmin = false;
 
-                if (estudiante != null && !string.IsNullOrEmpty(toEmail))
+            if (estudiante != null && !string.IsNullOrWhiteSpace(correoAdmin))
+            {
+                try
                 {
                     await _emailService.EnviarNotificacionExcusaAsync(
-                        estudiante, excusa, archivoBytes, archivoNombre, archivoMime, toEmail);
+                        estudiante, excusa, archivoBytes, archivoNombre, archivoMime, correoAdmin);
+                    enviadoAdmin = true;
+                    _logger.LogInformation(
+                        "Correo de excusa {IdExcusa} enviado al admin de la institución ({Correo}).",
+                        excusa.IdExcusa, correoAdmin);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Falló envío al admin de la institución ({Correo}) para excusa {IdExcusa}. Se intentará fallback a super usuarios.",
+                        correoAdmin, excusa.IdExcusa);
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Excusa {IdExcusa}: admin de la institución sin correo registrado. Se intentará fallback a super usuarios.",
+                    excusa.IdExcusa);
+            }
+
+            // Fallback: enviar a super usuarios si no se logró enviar al admin
+            if (!enviadoAdmin && estudiante != null)
+            {
+                var correosSU = await _administradorRepo.ObtenerCorreosSuperUsuariosAsync();
+                if (correosSU.Count == 0)
+                {
+                    _logger.LogWarning(
+                        "Excusa {IdExcusa}: no hay super usuarios con correo registrado para fallback.",
+                        excusa.IdExcusa);
+                }
+                else
+                {
+                    foreach (var correoSU in correosSU)
+                    {
+                        try
+                        {
+                            await _emailService.EnviarNotificacionExcusaAsync(
+                                estudiante, excusa, archivoBytes, archivoNombre, archivoMime, correoSU);
+                            _logger.LogInformation(
+                                "Correo de excusa {IdExcusa} enviado a super usuario ({Correo}) por fallback.",
+                                excusa.IdExcusa, correoSU);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex,
+                                "Falló envío de fallback a super usuario ({Correo}) para excusa {IdExcusa}.",
+                                correoSU, excusa.IdExcusa);
+                        }
+                    }
+                }
+            }
+
+            TempData["Exito"] = "La excusa fue registrada exitosamente.";
+            return RedirectToAction(nameof(Crear), new { idInstitucion });
+        }
+
+        // POST /Excusas/ActualizarEstado
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActualizarEstado(int idExcusa, string estado, string motivoDecision)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return RedirectToAction("Index", "Dashboard");
+
+            var excusaExistente = await _excusaRepo.ObtenerPorIdAsync(idExcusa);
+            if (excusaExistente == null)
+            {
+                TempData["Error"] = "La excusa no fue encontrada.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            if (excusaExistente.Estado == "Aprobada" || excusaExistente.Estado == "Rechazada")
+            {
+                TempData["Error"] = "Esta excusa ya fue procesada y no puede modificarse.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            if (estado != "Aprobada" && estado != "Rechazada")
+            {
+                TempData["Error"] = "El estado proporcionado no es válido.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            // Obtener admin desde el usuario logueado
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
+            {
+                TempData["Error"] = "Sesión inválida.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+            if (admin == null)
+            {
+                TempData["Error"] = "Administrador no encontrado.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            // Actualizar registrando quién tomó la decisión
+            await _excusaRepo.ActualizarDecisionAsync(idExcusa, estado, motivoDecision, admin.IdAdministrador);
+
+            // Enviar correo al acudiente (fallo no bloquea la respuesta)
+            try
+            {
+                var excusaConDatos = await _excusaRepo.ObtenerConEstudianteYAcudienteAsync(idExcusa);
+                var correoAcudiente = excusaConDatos?.Estudiante?.Acudiente?.Correo;
+
+                if (excusaConDatos != null && !string.IsNullOrEmpty(correoAcudiente))
+                {
+                    await _emailService.EnviarDecisionExcusaAsync(excusaConDatos, correoAcudiente);
                 }
                 else
                 {
                     _logger.LogWarning(
-                        "Correo no enviado para excusa {IdExcusa}: administrador sin correo registrado.",
-                        excusa.IdExcusa);
+                        "Correo de decisión no enviado para excusa {Id}: acudiente sin correo registrado.",
+                        idExcusa);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
-                    "No se pudo enviar el correo para la excusa {IdExcusa}.",
-                    excusa.IdExcusa);
+                    "No se pudo enviar correo de decisión para excusa {Id}.", idExcusa);
             }
 
-            TempData["Exito"] = "La excusa fue registrada exitosamente.";
-            return RedirectToAction(nameof(Crear), new { idInstitucion });
+            TempData["Exito"] = estado == "Aprobada"
+                ? "La excusa fue aprobada correctamente."
+                : "La excusa fue rechazada correctamente.";
+
+            return RedirectToAction("Index", "Dashboard");
         }
 
         // ── Helpers privados ──────────────────────────────────────────────────

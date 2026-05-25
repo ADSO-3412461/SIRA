@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using SIRA.Models;
 using SIRA.Repositories.Interfaces;
-using SIRA.Services;
 using SIRA.ViewModels;
 
 namespace SIRA.Controllers
@@ -14,20 +12,17 @@ namespace SIRA.Controllers
         private readonly IExcusaRepository            _excusaRepo;
         private readonly IAdministradorRepository     _administradorRepo;
         private readonly IUsuarioRepository           _usuarioRepo;
-        private readonly IEmailService                _emailService;
         private readonly ILogger<DashboardController> _logger;
 
         public DashboardController(
             IExcusaRepository             excusaRepo,
             IAdministradorRepository      administradorRepo,
             IUsuarioRepository            usuarioRepo,
-            IEmailService                 emailService,
             ILogger<DashboardController>  logger)
         {
             _excusaRepo        = excusaRepo;
             _administradorRepo = administradorRepo;
             _usuarioRepo       = usuarioRepo;
-            _emailService      = emailService;
             _logger            = logger;
         }
 
@@ -38,7 +33,12 @@ namespace SIRA.Controllers
 
             if (pagina < 1) pagina = 1;
 
-            var (excusas, totalRegistros) = await _excusaRepo.ObtenerPaginadoAsync(pagina, registrosPorPagina);
+            int  idInstitucion  = HttpContext.Session.GetInt32("IdInstitucion")  ?? 0;
+            bool esSuperUsuario = HttpContext.Session.GetInt32("EsSuperUsuario") == 1
+                               || HttpContext.Session.GetInt32("EsRoot")         == 1;
+
+            var (excusas, totalRegistros) = await _excusaRepo.ObtenerPaginadoAsync(
+                pagina, registrosPorPagina, idInstitucion, esSuperUsuario);
 
             var totalPaginas = totalRegistros == 0
                 ? 1
@@ -81,53 +81,6 @@ namespace SIRA.Controllers
 
             var (mime, ext) = DetectarTipoArchivo(ev.Archivo);
             return File(ev.Archivo, mime, $"evidencia_{idExcusa}{ext}");
-        }
-
-        // POST /Dashboard/RegistrarDecision
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RegistrarDecision(DecisionViewModel vm)
-        {
-            if (!ModelState.IsValid)
-                return Json(new { success = false, message = "Datos inválidos." });
-
-            // Obtener el administrador desde el usuario logueado
-            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
-                return Json(new { success = false, message = "Sesión inválida." });
-
-            var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
-            if (admin == null)
-                return Json(new { success = false, message = "Administrador no encontrado." });
-
-            // Actualizar excusa en BD
-            await _excusaRepo.ActualizarDecisionAsync(
-                vm.IdExcusa, vm.Estado, vm.MotivoDecision, admin.IdAdministrador);
-
-            // Enviar correo al acudiente (fallo no bloquea la respuesta)
-            try
-            {
-                var excusa = await _excusaRepo.ObtenerConEstudianteYAcudienteAsync(vm.IdExcusa);
-                var correoAcudiente = excusa?.Estudiante?.Acudiente?.Correo;
-
-                if (excusa != null && !string.IsNullOrEmpty(correoAcudiente))
-                {
-                    await _emailService.EnviarDecisionExcusaAsync(excusa, correoAcudiente);
-                }
-                else
-                {
-                    _logger.LogWarning(
-                        "Correo de decisión no enviado para excusa {Id}: acudiente sin correo registrado.",
-                        vm.IdExcusa);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "No se pudo enviar correo de decisión para excusa {Id}.", vm.IdExcusa);
-            }
-
-            return Json(new { success = true, estado = vm.Estado });
         }
 
         // GET /Dashboard/Administradores
@@ -181,6 +134,21 @@ namespace SIRA.Controllers
                 return RedirectToAction("Index");
 
             await _usuarioRepo.ActualizarEstadoAsync(idUsuario, esActivo);
+            return RedirectToAction("Administradores");
+        }
+
+        // POST /Dashboard/ActualizarSuperUsuario
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActualizarSuperUsuario(int idUsuario, bool esSuperUsuario)
+        {
+            if (HttpContext.Session.GetInt32("EsSuperUsuario") != 1)
+                return RedirectToAction("Index");
+
+            await _usuarioRepo.ActualizarSuperUsuarioAsync(idUsuario, esSuperUsuario);
+            TempData["Exito"] = esSuperUsuario
+                ? "Rol de Super Admin asignado correctamente."
+                : "Rol de Super Admin removido correctamente.";
             return RedirectToAction("Administradores");
         }
 

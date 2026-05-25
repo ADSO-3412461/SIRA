@@ -23,5 +23,8 @@ namespace SIRA.Models
 
         [Column("es_activo")]
         public bool EsActivo { get; set; } = true;
+
+        [Column("es_root")]
+        public bool EsRoot { get; set; } = false;
     }
 }

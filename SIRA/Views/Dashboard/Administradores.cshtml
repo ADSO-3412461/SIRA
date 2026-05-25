@@ -1,6 +1,8 @@
 @model IEnumerable<SIRA.Models.Administrador>
+@using System.Security.Claims
 @{
     ViewData["Title"] = "Administradores";
+    var idUsuarioLogueado = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var _uid) ? _uid : 0;
 }
 
 <div class="page-dashboard">
@@ -18,11 +20,29 @@
                     <p class="text-muted mb-0 small">Cuentas administrativas registradas en el sistema</p>
                 </div>
             </div>
-            <a asp-controller="Dashboard" asp-action="Index"
-               class="btn btn-sm btn-outline-secondary fw-semibold">
-                <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
-            </a>
+            <div class="d-flex align-items-center gap-2">
+                @if (Context.Session.GetInt32("EsSuperUsuario") == 1)
+                {
+                    <button type="button" class="btn btn-sm fw-semibold"
+                            style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);"
+                            onclick="abrirModalAdmin()">
+                        <i class="bi bi-person-plus-fill me-1"></i>Agregar Administrador
+                    </button>
+                }
+                <a asp-controller="Dashboard" asp-action="Index"
+                   class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+                </a>
+            </div>
         </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
         <!-- Tarjeta de la tabla -->
         <div class="card border-0 shadow-sm">
@@ -92,24 +112,62 @@
                                         <td class="text-center pe-4">
                                             @if (admin.Usuario != null)
                                             {
-                                                <form asp-controller="Dashboard"
-                                                      asp-action="ActualizarEstado"
-                                                      method="post" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="idUsuario" value="@admin.Usuario.IdUsuario" />
-                                                    <input type="hidden" name="esActivo"  value="@(admin.Usuario.EsActivo ? "false" : "true")" />
-                                                    <button type="submit"
-                                                            class="btn btn-sm @(admin.Usuario.EsActivo ? "btn-outline-danger" : "btn-outline-success") fw-semibold">
-                                                        @if (admin.Usuario.EsActivo)
+                                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                                    <!-- Activar / Desactivar -->
+                                                    <form asp-controller="Dashboard"
+                                                          asp-action="ActualizarEstado"
+                                                          method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idUsuario" value="@admin.Usuario.IdUsuario" />
+                                                        <input type="hidden" name="esActivo"  value="@(admin.Usuario.EsActivo ? "false" : "true")" />
+                                                        <button type="submit"
+                                                                class="btn btn-sm @(admin.Usuario.EsActivo ? "btn-outline-danger" : "btn-outline-success") fw-semibold">
+                                                            @if (admin.Usuario.EsActivo)
+                                                            {
+                                                                <i class="bi bi-toggle-off me-1"></i><text>Desactivar</text>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-toggle-on me-1"></i><text>Activar</text>
+                                                            }
+                                                        </button>
+                                                    </form>
+
+                                                    <!-- Dar / Quitar Super Admin (solo visible para super usuario) -->
+                                                    @if (Context.Session.GetInt32("EsSuperUsuario") == 1)
+                                                    {
+                                                        @if (admin.Usuario.IdUsuario == idUsuarioLogueado)
                                                         {
-                                                            <i class="bi bi-toggle-off me-1"></i><text>Desactivar</text>
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-outline-secondary fw-semibold"
+                                                                    disabled
+                                                                    title="No puedes modificar tu propio rol">
+                                                                <i class="bi bi-shield-lock me-1"></i>Mi Rol
+                                                            </button>
                                                         }
                                                         else
                                                         {
-                                                            <i class="bi bi-toggle-on me-1"></i><text>Activar</text>
+                                                            <form asp-controller="Dashboard"
+                                                                  asp-action="ActualizarSuperUsuario"
+                                                                  method="post" class="d-inline">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="idUsuario"      value="@admin.Usuario.IdUsuario" />
+                                                                <input type="hidden" name="esSuperUsuario" value="@(admin.Usuario.EsSuperUsuario ? "false" : "true")" />
+                                                                <button type="submit"
+                                                                        class="btn btn-sm @(admin.Usuario.EsSuperUsuario ? "btn-outline-warning" : "btn-outline-primary") fw-semibold">
+                                                                    @if (admin.Usuario.EsSuperUsuario)
+                                                                    {
+                                                                        <i class="bi bi-shield-minus me-1"></i><text>Quitar Super Admin</text>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <i class="bi bi-shield-plus me-1"></i><text>Dar Super Admin</text>
+                                                                    }
+                                                                </button>
+                                                            </form>
                                                         }
-                                                    </button>
-                                                </form>
+                                                    }
+                                                </div>
                                             }
                                         </td>
                                     </tr>
@@ -123,3 +181,168 @@
 
     </div>
 </div>
+
+@if (Context.Session.GetInt32("EsSuperUsuario") == 1)
+{
+<div class="modal fade" id="modalAdmin" tabindex="-1" aria-labelledby="modalAdminLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalAdminLabel">
+                    <i class="bi bi-person-plus-fill me-2"></i>Agregar Administrador
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <form id="formAdmin" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminNombre">
+                            Nombre completo <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="adminNombre"
+                               name="NombreCompleto" placeholder="Ej. María García" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminNombre">
+                            El nombre es obligatorio.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminCorreo">
+                            Correo electrónico <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="adminCorreo"
+                               name="Correo" placeholder="correo@ejemplo.com" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminCorreo">
+                            Ingrese un correo válido.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminAlias">
+                            Usuario (alias) <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="adminAlias"
+                               name="Alias" placeholder="Ej. mgarcia" autocomplete="off" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminAlias">
+                            El alias es obligatorio.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminClave">
+                            Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="adminClave"
+                               name="Clave" autocomplete="new-password" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminClave">
+                            La contraseña es obligatoria.
+                        </div>
+                    </div>
+
+                    <div id="alertAdmin" class="alert d-none" role="alert"></div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnGuardarAdmin"
+                            class="btn btn-primary fw-semibold"
+                            style="background:var(--sira-accent);border-color:var(--sira-accent);">
+                        <i class="bi bi-person-check-fill me-2"></i>Guardar
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+}
+
+@section Scripts {
+<script>
+    var _modalAdmin = null;
+
+    function abrirModalAdmin() {
+        var modalEl = document.getElementById("modalAdmin");
+        if (!modalEl) return;
+
+        document.getElementById("formAdmin").reset();
+        ["err-adminNombre","err-adminCorreo","err-adminAlias","err-adminClave"].forEach(function(id) {
+            document.getElementById(id).classList.add("d-none");
+        });
+        document.getElementById("alertAdmin").className = "alert d-none";
+        document.getElementById("btnGuardarAdmin").disabled = false;
+        document.getElementById("btnGuardarAdmin").innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+
+        if (!_modalAdmin) _modalAdmin = new bootstrap.Modal(modalEl);
+        _modalAdmin.show();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var formAdmin = document.getElementById("formAdmin");
+        if (formAdmin) {
+            formAdmin.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                var nombre = document.getElementById("adminNombre").value.trim();
+                var correo = document.getElementById("adminCorreo").value.trim();
+                var alias  = document.getElementById("adminAlias").value.trim();
+                var clave  = document.getElementById("adminClave").value;
+                var ok = true;
+
+                document.getElementById("err-adminNombre").classList.toggle("d-none", nombre !== "");
+                document.getElementById("err-adminCorreo").classList.toggle("d-none", correo !== "" && /\S+@@\S+\.\S+/.test(correo));
+                document.getElementById("err-adminAlias").classList.toggle("d-none",  alias  !== "");
+                document.getElementById("err-adminClave").classList.toggle("d-none",  clave  !== "");
+
+                if (!nombre || !alias || !clave) ok = false;
+                if (!correo || !/\S+@@\S+\.\S+/.test(correo)) ok = false;
+                if (!ok) return;
+
+                var btnG = document.getElementById("btnGuardarAdmin");
+                btnG.disabled = true;
+                btnG.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Guardando...";
+
+                var token = formAdmin.querySelector("[name='__RequestVerificationToken']").value;
+                var body  = new URLSearchParams({
+                    NombreCompleto: nombre, Correo: correo,
+                    Alias: alias, Clave: clave,
+                    __RequestVerificationToken: token
+                });
+
+                try {
+                    var resp = await fetch("/Dashboard/AgregarAdministrador", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: body.toString()
+                    });
+                    var json = await resp.json();
+
+                    if (json.success) {
+                        if (_modalAdmin) _modalAdmin.hide();
+                        location.reload();
+                    } else {
+                        var alertAdmin = document.getElementById("alertAdmin");
+                        alertAdmin.className   = "alert alert-danger";
+                        alertAdmin.textContent = json.message || "Ocurrió un error.";
+                        btnG.disabled  = false;
+                        btnG.innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+                    }
+                } catch {
+                    var alertAdmin = document.getElementById("alertAdmin");
+                    alertAdmin.className   = "alert alert-danger";
+                    alertAdmin.textContent = "Error de conexión. Intente de nuevo.";
+                    btnG.disabled  = false;
+                    btnG.innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+                }
+            });
+        }
+    });
+</script>
+}

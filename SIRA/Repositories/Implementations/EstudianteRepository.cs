@@ -14,12 +14,18 @@ namespace SIRA.Repositories.Implementations
             _context = context;
         }
 
-        public async Task<IEnumerable<Estudiante>> ObtenerTodosAsync()
+        public async Task<IEnumerable<Estudiante>> ObtenerTodosAsync(int idInstitucion, bool esSuperUsuario)
         {
-            return await _context.Estudiantes
+            var query = _context.Estudiantes
                 .Include(e => e.TipoDocumento)
                 .Include(e => e.Acudiente)
                 .Include(e => e.InstitucionEducativa)
+                .AsQueryable();
+
+            if (!esSuperUsuario)
+                query = query.Where(e => e.IdInstitucionEducativa == idInstitucion);
+
+            return await query
                 .OrderBy(e => e.NombreCompleto)
                 .ToListAsync();
         }
