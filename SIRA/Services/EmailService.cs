@@ -19,34 +19,58 @@ namespace SIRA.Services
 
         public async Task EnviarNotificacionExcusaAsync(
             Estudiante estudiante,
-            Excusa     excusa,
-            byte[]     archivoBytes,
-            string     archivoNombre,
-            string     archivoMime,
-            string     toEmail)
+            Excusa excusa,
+            byte[] archivoBytes,
+            string archivoNombre,
+            string archivoMime,
+            string toEmail)
         {
-            using var mensaje = new MailMessage();
-            mensaje.From       = new MailAddress(_cfg.SmtpUser, _cfg.FromName);
-            mensaje.To.Add(toEmail);
-            //mensaje.To.Add(_cfg.ToEmail);
-            mensaje.Subject    = $"Nueva excusa registrada — {estudiante.NombreCompleto ?? "Estudiante"}";
-            mensaje.IsBodyHtml = true;
-            mensaje.Body       = ConstruirHtml(estudiante, excusa);
-
-            using var adjuntoStream = new MemoryStream(archivoBytes);
-            mensaje.Attachments.Add(new Attachment(adjuntoStream, archivoNombre, archivoMime));
-
-            using var smtp = new SmtpClient(_cfg.SmtpHost, _cfg.SmtpPort)
+            try
             {
-                Credentials = new NetworkCredential(_cfg.SmtpUser, _cfg.SmtpPassword),
-                EnableSsl   = _cfg.EnableSsl
-            };
+                using var mensaje = new MailMessage();
+                mensaje.From = new MailAddress(_cfg.SmtpUser, _cfg.FromName);
+                mensaje.To.Add(toEmail);
+                mensaje.Subject = $"SIRA: Nueva excusa registrada de {estudiante.NombreCompleto ?? "Estudiante"}";
+                mensaje.SubjectEncoding = System.Text.Encoding.UTF8;
+                mensaje.BodyEncoding    = System.Text.Encoding.UTF8;
 
-            await smtp.SendMailAsync(mensaje);
+                // Headers anti-spam (Reply-To, List-Unsubscribe, X-Mailer)
+                mensaje.ReplyToList.Add(new MailAddress(_cfg.SmtpUser, _cfg.FromName));
+                mensaje.Headers.Add("List-Unsubscribe", $"<mailto:{_cfg.SmtpUser}?subject=Unsubscribe>");
+                mensaje.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+                mensaje.Headers.Add("X-Mailer", "SIRA - Sistema Registro Academico");
 
-            _logger.LogInformation(
-                "Correo de excusa {IdExcusa} enviado a {ToEmail}.",
-                excusa.IdExcusa, toEmail);
+                // Multipart/alternative: texto plano primero, luego HTML
+                var html  = ConstruirHtml(estudiante, excusa);
+                var plain = ConstruirTextoPlano(estudiante, excusa);
+
+                mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
+                    plain, System.Text.Encoding.UTF8, "text/plain"));
+                mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
+                    html,  System.Text.Encoding.UTF8, "text/html"));
+
+                using var adjuntoStream = new MemoryStream(archivoBytes);
+                mensaje.Attachments.Add(new Attachment(adjuntoStream, archivoNombre, archivoMime));
+
+                using var smtp = new SmtpClient(_cfg.SmtpHost, _cfg.SmtpPort)
+                {
+                    Credentials = new NetworkCredential(_cfg.SmtpUser, _cfg.SmtpPassword),
+                    EnableSsl = _cfg.EnableSsl
+                };
+
+                await smtp.SendMailAsync(mensaje);
+
+                _logger.LogInformation(
+                    "Correo de excusa {IdExcusa} enviado a {ToEmail}.",
+                    excusa.IdExcusa, toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error enviando notificación de excusa {IdExcusa} a {ToEmail}.",
+                    excusa.IdExcusa, toEmail);
+                throw;
+            }
         }
 
         public async Task EnviarDecisionExcusaAsync(Excusa excusa, string toEmail)
@@ -55,11 +79,26 @@ namespace SIRA.Services
             var estado           = excusa.Estado ?? "—";
 
             using var mensaje = new MailMessage();
-            mensaje.From       = new MailAddress(_cfg.SmtpUser, _cfg.FromName);
+            mensaje.From    = new MailAddress(_cfg.SmtpUser, _cfg.FromName);
             mensaje.To.Add(toEmail);
-            mensaje.Subject    = $"Notificacion Cambio Estado Excusa - {nombreEstudiante}";
-            mensaje.IsBodyHtml = true;
-            mensaje.Body       = ConstruirHtmlDecision(excusa);
+            mensaje.Subject = $"SIRA: Cambio de estado de excusa de {nombreEstudiante}";
+            mensaje.SubjectEncoding = System.Text.Encoding.UTF8;
+            mensaje.BodyEncoding    = System.Text.Encoding.UTF8;
+
+            // Headers anti-spam (Reply-To, List-Unsubscribe, X-Mailer)
+            mensaje.ReplyToList.Add(new MailAddress(_cfg.SmtpUser, _cfg.FromName));
+            mensaje.Headers.Add("List-Unsubscribe", $"<mailto:{_cfg.SmtpUser}?subject=Unsubscribe>");
+            mensaje.Headers.Add("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+            mensaje.Headers.Add("X-Mailer", "SIRA - Sistema Registro Academico");
+
+            // Multipart/alternative: texto plano primero, luego HTML
+            var html  = ConstruirHtmlDecision(excusa);
+            var plain = ConstruirTextoPlanoDecision(excusa);
+
+            mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
+                plain, System.Text.Encoding.UTF8, "text/plain"));
+            mensaje.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
+                html,  System.Text.Encoding.UTF8, "text/html"));
 
             using var smtp = new SmtpClient(_cfg.SmtpHost, _cfg.SmtpPort)
             {
@@ -72,6 +111,57 @@ namespace SIRA.Services
             _logger.LogInformation(
                 "Correo de decisión ({Estado}) para excusa {IdExcusa} enviado a {ToEmail}.",
                 estado, excusa.IdExcusa, toEmail);
+        }
+
+        // ── Texto plano (alternativa multipart) ───────────────────────────────
+
+        private static string ConstruirTextoPlano(Estudiante est, Excusa exc)
+        {
+            var fecha  = exc.FechaHoraRegistro?.ToString("dd/MM/yyyy HH:mm") ?? "—";
+            var estado = exc.Estado ?? "Por revisar";
+            var motivo = exc.MotivoInasistencia ?? "—";
+
+            return
+                "SIRA - Nueva Excusa Registrada\r\n" +
+                "Sistema Integral de Registro de Ausencias - SENA CAE Curumani\r\n" +
+                "\r\n" +
+                "DATOS DEL ESTUDIANTE\r\n" +
+                $"Nombre completo    : {est.NombreCompleto ?? "—"}\r\n" +
+                $"Tipo de documento  : {est.TipoDocumento?.Sigla ?? "—"}\r\n" +
+                $"Numero de documento: {est.NumeroDocumento ?? "—"}\r\n" +
+                "\r\n" +
+                "DATOS DE LA EXCUSA\r\n" +
+                $"Fecha de registro : {fecha}\r\n" +
+                $"Estado            : {estado}\r\n" +
+                $"Motivo            : {motivo}\r\n" +
+                "\r\n" +
+                "La evidencia de soporte se encuentra adjunta en este correo.\r\n" +
+                "\r\n" +
+                "---\r\n" +
+                "Mensaje generado automaticamente por SIRA. No responda a este correo.\r\n";
+        }
+
+        private static string ConstruirTextoPlanoDecision(Excusa exc)
+        {
+            var nombreEstudiante = exc.Estudiante?.NombreCompleto ?? "—";
+            var fecha  = exc.FechaHoraRegistro?.ToString("dd/MM/yyyy HH:mm") ?? "—";
+            var estado = exc.Estado ?? "—";
+            var motivo = exc.MotivoDecision ?? "—";
+
+            return
+                "SIRA - Decision sobre su Excusa\r\n" +
+                "Sistema Integral de Registro de Ausencias - SENA CAE Curumani\r\n" +
+                "\r\n" +
+                $"La excusa del estudiante {nombreEstudiante} ha sido revisada por el administrador.\r\n" +
+                "\r\n" +
+                $"ESTADO: {estado}\r\n" +
+                "\r\n" +
+                $"Estudiante           : {nombreEstudiante}\r\n" +
+                $"Fecha de excusa      : {fecha}\r\n" +
+                $"Motivo de la decision: {motivo}\r\n" +
+                "\r\n" +
+                "---\r\n" +
+                "Mensaje generado automaticamente por SIRA. No responda a este correo.\r\n";
         }
 
         // ── HTML del correo ───────────────────────────────────────────────────

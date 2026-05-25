@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SIRA.Models;
@@ -251,14 +252,14 @@ namespace SIRA.Controllers
             if (User.Identity?.IsAuthenticated != true)
                 return RedirectToAction("Index", "Dashboard");
 
-            var excusa = await _excusaRepo.ObtenerPorIdAsync(idExcusa);
-            if (excusa == null)
+            var excusaExistente = await _excusaRepo.ObtenerPorIdAsync(idExcusa);
+            if (excusaExistente == null)
             {
                 TempData["Error"] = "La excusa no fue encontrada.";
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            if (excusa.Estado == "Aprobada" || excusa.Estado == "Rechazada")
+            if (excusaExistente.Estado == "Aprobada" || excusaExistente.Estado == "Rechazada")
             {
                 TempData["Error"] = "Esta excusa ya fue procesada y no puede modificarse.";
                 return RedirectToAction("Index", "Dashboard");
@@ -270,7 +271,46 @@ namespace SIRA.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            await _excusaRepo.ActualizarEstadoAsync(idExcusa, estado, motivoDecision);
+            // Obtener admin desde el usuario logueado
+            var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(idUsuarioClaim, out var idUsuario))
+            {
+                TempData["Error"] = "Sesión inválida.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var admin = await _administradorRepo.ObtenerPorUsuarioAsync(idUsuario);
+            if (admin == null)
+            {
+                TempData["Error"] = "Administrador no encontrado.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            // Actualizar registrando quién tomó la decisión
+            await _excusaRepo.ActualizarDecisionAsync(idExcusa, estado, motivoDecision, admin.IdAdministrador);
+
+            // Enviar correo al acudiente (fallo no bloquea la respuesta)
+            try
+            {
+                var excusaConDatos = await _excusaRepo.ObtenerConEstudianteYAcudienteAsync(idExcusa);
+                var correoAcudiente = excusaConDatos?.Estudiante?.Acudiente?.Correo;
+
+                if (excusaConDatos != null && !string.IsNullOrEmpty(correoAcudiente))
+                {
+                    await _emailService.EnviarDecisionExcusaAsync(excusaConDatos, correoAcudiente);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Correo de decisión no enviado para excusa {Id}: acudiente sin correo registrado.",
+                        idExcusa);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "No se pudo enviar correo de decisión para excusa {Id}.", idExcusa);
+            }
 
             TempData["Exito"] = estado == "Aprobada"
                 ? "La excusa fue aprobada correctamente."
