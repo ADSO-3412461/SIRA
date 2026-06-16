@@ -49,6 +49,33 @@ administrar estudiantes, acudientes, administradores e instituciones educativas.
    `/architecture` (diseño/ADRs) · `/code-review` (PRs y diffs) ·
    `/debug` (debugging estructurado) · `/tech-debt` (deuda técnica).
 
+5. **NUNCA crear ramas, Pull Requests ni hacer merge en GitHub sin confirmación
+   explícita del usuario.** Aplica en **cualquier modo**. Incluye:
+   - Crear una nueva rama remota en GitHub
+   - Abrir un Pull Request hacia cualquier rama (`Developer`, `Testing`, `main`)
+   - Mergear un Pull Request hacia cualquier rama
+
+   Antes de cada una de estas acciones: preguntar y esperar aprobación explícita.
+   (Trabajar/commitear en una rama **local** no requiere confirmación; sí la
+   requiere cualquier operación que cree ramas/PRs o haga merge en el remoto.)
+
+---
+
+## Flujo de trabajo (Git)
+
+1. **Crear una nueva rama a partir de `Developer`** (previa confirmación del
+   usuario — ver regla crítica #5).
+2. **Realizar los cambios** en esa rama.
+3. **Verificar antes de proponer el merge:**
+   - El proyecto **compila** (`dotnet build SIRA/SIRA.csproj`).
+   - La aplicación **levanta y la base de datos funciona** (`dotnet run` y
+     comprobar que no hay errores de BD, p. ej. en `/Home/Instituciones`).
+4. **Solo cuando todo funciona**, abrir un **Pull Request hacia `Developer`**
+   (previa confirmación del usuario — ver regla crítica #5).
+
+> La promoción posterior (`Developer → Testing → main`) también se hace vía PR
+> y requiere confirmación del usuario en cada paso.
+
 ---
 
 ## Comandos (build / run / EF)
