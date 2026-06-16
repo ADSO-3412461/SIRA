@@ -1,0 +1,155 @@
+@model SIRA.ViewModels.InstitucionEducativaViewModel
+@using SIRA.Models
+@{
+    ViewData["Title"] = "Editar Institución Educativa";
+    var admins = ViewBag.Administradores as IEnumerable<Administrador> ?? Enumerable.Empty<Administrador>();
+}
+
+<div class="page-crear">
+    <div class="container" style="max-width:680px;">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-pencil-square text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Editar Institución Educativa</h1>
+                    <p class="text-muted mb-0 small">Modifique los datos de la institución</p>
+                </div>
+            </div>
+            <a asp-action="Index"
+               class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Volver al listado
+            </a>
+        </div>
+
+        <!-- Formulario -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+
+                <form id="formEditar" asp-action="Editar" method="post" autocomplete="off">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="IdInstitucionEducativa" />
+                    <input type="hidden" asp-for="EsActivo" />
+
+                    <!-- Nombre institución -->
+                    <div class="mb-3">
+                        <label asp-for="NombreInstitucion" class="form-label fw-semibold">
+                            Nombre de la institución <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NombreInstitucion" id="inputNombre" class="form-control"
+                               placeholder="Ej. SENA CAE Curumaní" />
+                        <div class="text-danger small mt-1" id="err-nombre"></div>
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="mb-3">
+                        <label asp-for="Direccion" class="form-label fw-semibold">
+                            Dirección <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Direccion" id="inputDireccion" class="form-control"
+                               placeholder="Ej. Calle 10 # 5-32, Curumaní, Cesar" />
+                        <div class="text-danger small mt-1" id="err-direccion"></div>
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="mb-3">
+                        <label asp-for="Telefono" class="form-label fw-semibold">
+                            Teléfono <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Telefono" id="inputTelefono" class="form-control"
+                               placeholder="Ej. 3113207139" inputmode="numeric" />
+                        <div class="text-danger small mt-1" id="err-telefono"></div>
+                    </div>
+
+                    <!-- Administrador asignado -->
+                    <div class="mb-4">
+                        <label asp-for="IdAdministrador" class="form-label fw-semibold">
+                            Administrador asignado <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="IdAdministrador" id="selectAdmin" class="form-select">
+                            @foreach (var admin in admins)
+                            {
+                                <option value="@admin.IdAdministrador">@admin.NombreCompleto</option>
+                            }
+                        </select>
+                        <div class="text-danger small mt-1" id="err-admin"></div>
+                        @if (!string.IsNullOrEmpty(ViewData.ModelState[nameof(Model.IdAdministrador)]?.Errors.FirstOrDefault()?.ErrorMessage))
+                        {
+                            <div class="text-danger small mt-1">
+                                @ViewData.ModelState[nameof(Model.IdAdministrador)]!.Errors.First().ErrorMessage
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" id="btnGuardar"
+                                class="btn fw-semibold py-2 flex-fill"
+                                style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                            <i class="bi bi-floppy-fill me-2"></i>Guardar Cambios
+                        </button>
+                        <a asp-action="Index"
+                           class="btn btn-outline-secondary fw-semibold py-2">
+                            Cancelar
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById("formEditar").addEventListener("submit", function (e) {
+        var ok = true;
+
+        var nombre = document.getElementById("inputNombre").value.trim();
+        var errNombre = document.getElementById("err-nombre");
+        if (!nombre) {
+            errNombre.textContent = "El nombre es obligatorio.";
+            ok = false;
+        } else {
+            errNombre.textContent = "";
+        }
+
+        var direccion = document.getElementById("inputDireccion").value.trim();
+        var errDireccion = document.getElementById("err-direccion");
+        if (!direccion) {
+            errDireccion.textContent = "La dirección es obligatoria.";
+            ok = false;
+        } else {
+            errDireccion.textContent = "";
+        }
+
+        var telefono = document.getElementById("inputTelefono").value.trim();
+        var errTelefono = document.getElementById("err-telefono");
+        if (!telefono) {
+            errTelefono.textContent = "El teléfono es obligatorio.";
+            ok = false;
+        } else if (!/^\d+$/.test(telefono)) {
+            errTelefono.textContent = "El teléfono solo debe contener números.";
+            ok = false;
+        } else {
+            errTelefono.textContent = "";
+        }
+
+        var admin = document.getElementById("selectAdmin").value;
+        var errAdmin = document.getElementById("err-admin");
+        if (!admin || admin === "0") {
+            errAdmin.textContent = "Debe seleccionar un administrador.";
+            ok = false;
+        } else {
+            errAdmin.textContent = "";
+        }
+
+        if (!ok) e.preventDefault();
+    });
+</script>
+}

@@ -1,0 +1,138 @@
+@model SIRA.ViewModels.EstudianteEditarViewModel
+@{
+    ViewData["Title"] = "Editar Estudiante";
+}
+
+<div class="d-flex justify-content-center align-items-center min-vh-100">
+    <div style="width:100%;max-width:600px;">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                  style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                <i class="bi bi-pencil-fill text-white fs-4"></i>
+            </span>
+            <div>
+                <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Editar Estudiante</h1>
+                <p class="text-muted mb-0 small">Modifique los datos del estudiante y guarde los cambios.</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+
+                <form id="formEditar" asp-action="Editar" method="post" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="IdEstudiante" />
+
+                    <!-- Nombre completo -->
+                    <div class="mb-3">
+                        <label asp-for="NombreCompleto" class="form-label fw-semibold">
+                            Nombre Completo <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NombreCompleto" class="form-control" id="inputNombre"
+                               placeholder="Ej: María González López" />
+                        <div class="invalid-feedback" id="errNombre"></div>
+                    </div>
+
+                    <!-- Tipo de documento -->
+                    <div class="mb-3">
+                        <label asp-for="IdTipoDocumento" class="form-label fw-semibold">
+                            Tipo de Documento <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="IdTipoDocumento" asp-items="Model.TiposDocumento"
+                                class="form-select" id="selectTipoDoc"></select>
+                        <div class="invalid-feedback" id="errTipoDoc"></div>
+                    </div>
+
+                    <!-- Número de documento -->
+                    <div class="mb-3">
+                        <label asp-for="NumeroDocumento" class="form-label fw-semibold">
+                            N° de Documento <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NumeroDocumento" class="form-control" id="inputNumDoc"
+                               placeholder="Ej: 1001234567" />
+                        <div class="invalid-feedback" id="errNumDoc"></div>
+                    </div>
+
+                    <!-- Acudiente -->
+                    <div class="mb-3">
+                        <label asp-for="IdAcudiente" class="form-label fw-semibold">Acudiente</label>
+                        <select asp-for="IdAcudiente" asp-items="Model.Acudientes"
+                                class="form-select"></select>
+                    </div>
+
+                    <!-- Institución educativa -->
+                    <div class="mb-4">
+                        <label asp-for="IdInstitucionEducativa" class="form-label fw-semibold">
+                            Institución Educativa
+                        </label>
+                        <select asp-for="IdInstitucionEducativa" asp-items="Model.InstitucionesEducativas"
+                                class="form-select"></select>
+                        <span asp-validation-for="IdInstitucionEducativa" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn fw-semibold"
+                                style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                            <i class="bi bi-floppy-fill me-1"></i>Guardar
+                        </button>
+                        <a asp-action="Consultar" class="btn btn-outline-secondary fw-semibold">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById("formEditar").addEventListener("submit", function (e) {
+        var valido = true;
+
+        // Nombre completo
+        var nombre = document.getElementById("inputNombre");
+        var errNombre = document.getElementById("errNombre");
+        if (!nombre.value.trim()) {
+            nombre.classList.add("is-invalid");
+            errNombre.textContent = "El nombre es obligatorio.";
+            valido = false;
+        } else {
+            nombre.classList.remove("is-invalid");
+        }
+
+        // Tipo de documento
+        var tipoDoc = document.getElementById("selectTipoDoc");
+        var errTipoDoc = document.getElementById("errTipoDoc");
+        if (!tipoDoc.value) {
+            tipoDoc.classList.add("is-invalid");
+            errTipoDoc.textContent = "Debe seleccionar el tipo de documento.";
+            valido = false;
+        } else {
+            tipoDoc.classList.remove("is-invalid");
+        }
+
+        // Número de documento
+        var numDoc = document.getElementById("inputNumDoc");
+        var errNumDoc = document.getElementById("errNumDoc");
+        if (!numDoc.value.trim()) {
+            numDoc.classList.add("is-invalid");
+            errNumDoc.textContent = "El número de documento es obligatorio.";
+            valido = false;
+        } else if (!/^\d+$/.test(numDoc.value.trim())) {
+            numDoc.classList.add("is-invalid");
+            errNumDoc.textContent = "El número de documento debe contener solo dígitos.";
+            valido = false;
+        } else {
+            numDoc.classList.remove("is-invalid");
+        }
+
+        if (!valido) e.preventDefault();
+    });
+</script>
+}

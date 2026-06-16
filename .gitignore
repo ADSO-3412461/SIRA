@@ -1,0 +1,78 @@
+##################################
+# ARCHIVOS DEL SISTEMA / IDE
+##################################
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.pyproj
+*.sln
+*.sln.docstates
+
+##################################
+# LOGS
+##################################
+*.log
+logs/
+log/
+*/logs/
+*/log/
+**/logs/**
+**/log/**
+
+##################################
+# PYTHON
+##################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+##################################
+# ENTORNOS VIRTUALES
+##################################
+.venv/
+env/
+*/env/
+*.env
+.env
+.env.*
+
+##################################
+# PYINSTALLER (NO subir dist ni build)
+##################################
+dist/
+build/
+*.spec
+
+##################################
+# ARCHIVOS GENERADOS Y BINARIOS
+##################################
+generated/
+*/generated/
+output/
+*.exe
+*.dll
+
+##################################
+# OS-SPECIFIC
+##################################
+.DS_Store
+Thumbs.db
+
+##################################
+# AZURE / DEPLOY / CACHE
+##################################
+oryx-manifest.toml
+output.tar.gz
+
+
+# Binarios de construcción: .exe, .dll, etc.
+[Bb]in/
+
+# Directorios de objetos intermedios
+[Oo]bj/
+
+# Archivos de copilot
+App-EmausResort/.vs/

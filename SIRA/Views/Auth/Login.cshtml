@@ -1,0 +1,167 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar Sesión";
+}
+
+<div class="page-crear">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-9 col-md-6 col-lg-4">
+
+                <!-- Cabecera -->
+                <div class="text-center mb-4">
+                    <span class="d-inline-flex align-items-center justify-content-center
+                                 rounded-circle mb-3"
+                          style="width:64px;height:64px;background-color:var(--sira-navy);">
+                        <i class="bi bi-shield-lock-fill text-white fs-2"></i>
+                    </span>
+                    <h1 class="h3 fw-bold" style="color:var(--sira-navy);">SIRA</h1>
+                    <p class="text-muted mb-0">Ingresa tus credenciales para continuar.</p>
+                </div>
+
+                <!-- Error general (alias o clave incorrectos) -->
+                @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                {
+                    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                        <span>@ViewData.ModelState[string.Empty]!.Errors[0].ErrorMessage</span>
+                    </div>
+                }
+
+                <!-- Tarjeta del formulario -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+
+                        <form id="formLogin"
+                              asp-controller="Auth"
+                              asp-action="Login"
+                              method="post"
+                              novalidate>
+
+                            @Html.AntiForgeryToken()
+
+                            <!-- Alias -->
+                            <div class="mb-3">
+                                <label asp-for="Alias" class="form-label fw-semibold">
+                                    <i class="bi bi-person-fill me-1"
+                                       style="color:var(--sira-accent);"></i>
+                                    Alias
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Alias"
+                                       type="text"
+                                       class="form-control"
+                                       id="inputAlias"
+                                       placeholder="Tu alias de acceso"
+                                       autocomplete="username" />
+                                <div class="invalid-feedback" id="err-alias"></div>
+                            </div>
+
+                            <!-- Clave -->
+                            <div class="mb-4">
+                                <label asp-for="Clave" class="form-label fw-semibold">
+                                    <i class="bi bi-lock-fill me-1"
+                                       style="color:var(--sira-accent);"></i>
+                                    Clave
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Clave"
+                                           type="password"
+                                           class="form-control"
+                                           id="inputClave"
+                                           placeholder="Tu clave"
+                                           autocomplete="current-password" />
+                                    <button class="btn btn-outline-secondary"
+                                            type="button"
+                                            id="toggleClave"
+                                            tabindex="-1"
+                                            title="Mostrar / ocultar clave">
+                                        <i class="bi bi-eye" id="iconoClave"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback d-block" id="err-clave"></div>
+                            </div>
+
+                            <!-- Botón ingresar -->
+                            <div class="d-grid">
+                                <button type="submit"
+                                        class="btn btn-primary py-2 fw-semibold"
+                                        style="background-color:var(--sira-accent);
+                                               border-color:var(--sira-accent);">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Volver al inicio -->
+                <div class="text-center mt-3 mb-5">
+                    <a asp-controller="Home" asp-action="Index"
+                       class="text-muted text-decoration-none small">
+                        <i class="bi bi-arrow-left me-1"></i>Volver al inicio
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    "use strict";
+
+    const form       = document.getElementById("formLogin");
+    const inputAlias = document.getElementById("inputAlias");
+    const inputClave = document.getElementById("inputClave");
+    const errAlias   = document.getElementById("err-alias");
+    const errClave   = document.getElementById("err-clave");
+    const toggleBtn  = document.getElementById("toggleClave");
+    const iconoClave = document.getElementById("iconoClave");
+
+    // Mostrar / ocultar clave
+    toggleBtn.addEventListener("click", function () {
+        const visible = inputClave.type === "text";
+        inputClave.type = visible ? "password" : "text";
+        iconoClave.className = visible ? "bi bi-eye" : "bi bi-eye-slash";
+    });
+
+    // Limpiar errores al escribir
+    inputAlias.addEventListener("input", () => clearErr(inputAlias, errAlias));
+    inputClave.addEventListener("input", () => clearErr(inputClave, errClave));
+
+    // Validación al enviar
+    form.addEventListener("submit", function (e) {
+        let ok = true;
+
+        if (!inputAlias.value.trim()) {
+            showErr(inputAlias, errAlias, "El alias es obligatorio.");
+            ok = false;
+        }
+
+        if (!inputClave.value) {
+            showErr(inputClave, errClave, "La clave es obligatoria.");
+            ok = false;
+        }
+
+        if (!ok) e.preventDefault();
+    });
+
+    function showErr(field, msgEl, msg) {
+        field.classList.add("is-invalid");
+        msgEl.textContent = msg;
+        msgEl.style.display = "block";
+    }
+
+    function clearErr(field, msgEl) {
+        field.classList.remove("is-invalid");
+        msgEl.style.display = "none";
+    }
+
+}());
+</script>
+}

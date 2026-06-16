@@ -1,0 +1,130 @@
+@model AcudienteViewModel
+@{
+    ViewData["Title"] = "Registrar Acudiente";
+}
+
+<div class="page-crear">
+    <div class="container" style="max-width:680px;">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-person-vcard-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Registrar Acudiente</h1>
+                    <p class="text-muted mb-0 small">Complete los datos del acudiente</p>
+                </div>
+            </div>
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="btn btn-sm btn-outline-secondary fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+            </a>
+        </div>
+
+        <!-- Alerta de éxito -->
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Formulario -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+
+                <form asp-action="Crear" method="post" autocomplete="off">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Nombre completo -->
+                    <div class="mb-3">
+                        <label asp-for="NombreCompleto" class="form-label fw-semibold">
+                            Nombre completo <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NombreCompleto" class="form-control"
+                               placeholder="Ej. María García López" />
+                        <span asp-validation-for="NombreCompleto" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Tipo de documento -->
+                    <div class="mb-3">
+                        <label asp-for="IdTipoDocumento" class="form-label fw-semibold">
+                            Tipo de documento <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="IdTipoDocumento"
+                                asp-items="Model.TiposDocumento"
+                                class="form-select">
+                        </select>
+                        <span asp-validation-for="IdTipoDocumento" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Número de documento -->
+                    <div class="mb-3">
+                        <label asp-for="NumeroDocumento" class="form-label fw-semibold">
+                            Número de documento <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NumeroDocumento" class="form-control"
+                               placeholder="Ej. 1065432100" />
+                        <span asp-validation-for="NumeroDocumento" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Correo -->
+                    <div class="mb-3">
+                        <label asp-for="Correo" class="form-label fw-semibold">
+                            Correo electrónico <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Correo" class="form-control" type="email"
+                               placeholder="correo@ejemplo.com" />
+                        <span asp-validation-for="Correo" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="mb-4">
+                        <label asp-for="Contrasena" class="form-label fw-semibold">
+                            Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input asp-for="Contrasena" class="form-control" type="password"
+                                   id="inputContrasena" placeholder="Mínimo 6 caracteres" />
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePassword()">
+                                <i class="bi bi-eye" id="iconOjo"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Contrasena" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn fw-semibold py-2"
+                                style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                            <i class="bi bi-person-check-fill me-2"></i>Registrar Acudiente
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function togglePassword() {
+        var input = document.getElementById("inputContrasena");
+        var icon  = document.getElementById("iconOjo");
+        if (input.type === "password") {
+            input.type = "text";
+            icon.className = "bi bi-eye-slash";
+        } else {
+            input.type = "password";
+            icon.className = "bi bi-eye";
+        }
+    }
+</script>
+}
