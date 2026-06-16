@@ -51,6 +51,19 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
+// ── Crear tablas faltantes sin borrar datos existentes ─────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var script = db.Database.GenerateCreateScript()
+        .Replace("CREATE TABLE ",        "CREATE TABLE IF NOT EXISTS ")
+        .Replace("CREATE INDEX ",        "CREATE INDEX IF NOT EXISTS ")
+        .Replace("CREATE UNIQUE INDEX ", "CREATE UNIQUE INDEX IF NOT EXISTS ");
+
+    if (!string.IsNullOrWhiteSpace(script))
+        db.Database.ExecuteSqlRaw(script);
+}
+
 app.UseDeveloperExceptionPage();
 // ── Pipeline ─────────────────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
