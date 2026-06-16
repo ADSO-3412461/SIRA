@@ -1,0 +1,159 @@
+@model IEnumerable<SIRA.Models.InstitucionEducativa>
+@{
+    ViewData["Title"] = "Instituciones Educativas";
+    var lista = Model.ToList();
+    var esSuperAdmin = Context.Session.GetInt32("EsSuperUsuario") == 1;
+}
+
+<div class="page-dashboard">
+    <div class="container-fluid px-4">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-building-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Instituciones Educativas</h1>
+                    <p class="text-muted mb-0 small">Instituciones registradas en el sistema</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge rounded-pill px-3 py-2 fs-6"
+                      style="background-color:var(--sira-navy);">
+                    <i class="bi bi-building me-1"></i>
+                    @lista.Count institución@(lista.Count == 1 ? "" : "es")
+                </span>
+                <a asp-action="Crear"
+                   class="btn btn-sm fw-semibold"
+                   style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                    <i class="bi bi-plus-circle-fill me-1"></i>Nueva Institución
+                </a>
+                <a asp-controller="Dashboard" asp-action="Index"
+                   class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Alerta de éxito -->
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Buscador en cliente -->
+        <div class="mb-3">
+            <input type="text" id="filtro" class="form-control" style="max-width:360px;"
+                   placeholder="Buscar por nombre, dirección, teléfono o administrador..." />
+        </div>
+
+        <!-- Tabla -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0" id="tablaInstituciones">
+                        <thead style="background-color:var(--sira-navy);color:#fff;">
+                            <tr>
+                                <th class="ps-4 py-3" style="width:50px;">#</th>
+                                <th class="py-3">Nombre Institución</th>
+                                <th class="py-3">Dirección</th>
+                                <th class="py-3">Teléfono</th>
+                                <th class="py-3">Administrador Asignado</th>
+                                <th class="py-3 text-center">Estado</th>
+                                @if (esSuperAdmin)
+                                {
+                                    <th class="py-3 text-center pe-4">Acciones</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!lista.Any())
+                            {
+                                <tr>
+                                    <td colspan="@(esSuperAdmin ? 7 : 6)" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        No hay instituciones educativas registradas aún.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int i = 1;
+                                foreach (var inst in lista)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted small">@(i++)</td>
+                                        <td class="fw-semibold">@(inst.NombreInstitucion ?? "—")</td>
+                                        <td>@(inst.Direccion ?? "—")</td>
+                                        <td class="font-monospace small">@(inst.Telefono ?? "—")</td>
+                                        <td>@(inst.Administrador?.NombreCompleto ?? "—")</td>
+                                        <td class="text-center">
+                                            @if (inst.EsActivo)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Activa
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Inactiva
+                                                </span>
+                                            }
+                                        </td>
+                                        @if (esSuperAdmin)
+                                        {
+                                            <td class="text-center pe-4">
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <a asp-action="Editar"
+                                                       asp-route-id="@inst.IdInstitucionEducativa"
+                                                       class="btn btn-sm btn-outline-primary fw-semibold">
+                                                        <i class="bi bi-pencil-fill me-1"></i>Editar
+                                                    </a>
+                                                    <form asp-action="ActualizarEstado" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id"      value="@inst.IdInstitucionEducativa" />
+                                                        <input type="hidden" name="esActivo" value="@(inst.EsActivo ? "false" : "true")" />
+                                                        <button type="submit"
+                                                                class="btn btn-sm @(inst.EsActivo ? "btn-outline-danger" : "btn-outline-success") fw-semibold">
+                                                            @if (inst.EsActivo)
+                                                            {
+                                                                <i class="bi bi-toggle-off me-1"></i><text>Desactivar</text>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-toggle-on me-1"></i><text>Activar</text>
+                                                            }
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById("filtro").addEventListener("input", function () {
+        var term = this.value.toLowerCase();
+        document.querySelectorAll("#tablaInstituciones tbody tr").forEach(function (row) {
+            row.style.display = row.textContent.toLowerCase().includes(term) ? "" : "none";
+        });
+    });
+</script>
+}

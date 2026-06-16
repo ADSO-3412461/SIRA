@@ -1,0 +1,153 @@
+@model IEnumerable<SIRA.Models.Estudiante>
+@{
+    ViewData["Title"] = "Estudiantes Registrados";
+    var lista = Model.ToList();
+    var esSuperAdmin = Context.Session.GetInt32("EsSuperUsuario") == 1;
+}
+
+<div class="page-dashboard">
+    <div class="container-fluid px-4">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-mortarboard-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Estudiantes Registrados</h1>
+                    <p class="text-muted mb-0 small">Listado de estudiantes en el sistema</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge rounded-pill px-3 py-2 fs-6"
+                      style="background-color:var(--sira-navy);">
+                    <i class="bi bi-mortarboard-fill me-1"></i>
+                    @lista.Count estudiante@(lista.Count == 1 ? "" : "s")
+                </span>
+                <a asp-controller="Estudiantes" asp-action="Crear"
+                   class="btn btn-sm fw-semibold"
+                   style="background-color:var(--sira-accent);color:#fff;border-color:var(--sira-accent);">
+                    <i class="bi bi-person-plus-fill me-1"></i>Registrar Estudiante
+                </a>
+                <a asp-controller="Dashboard" asp-action="Index"
+                   class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Buscador en cliente -->
+        <div class="mb-3">
+            <input type="text" id="filtro" class="form-control" style="max-width:360px;"
+                   placeholder="Buscar por nombre, documento, acudiente o institución..." />
+        </div>
+
+        <!-- Tabla -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0" id="tablaEstudiantes">
+                        <thead style="background-color:var(--sira-navy);color:#fff;">
+                            <tr>
+                                <th class="ps-4 py-3" style="width:50px;">#</th>
+                                <th class="py-3">Nombre Completo</th>
+                                <th class="py-3">Tipo Doc.</th>
+                                <th class="py-3">N° Documento</th>
+                                <th class="py-3">Acudiente</th>
+                                <th class="py-3">Institución</th>
+                                @if (esSuperAdmin)
+                                {
+                                    <th class="py-3 pe-4">Acciones</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!lista.Any())
+                            {
+                                <tr>
+                                    <td colspan="@(esSuperAdmin ? 7 : 6)" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        No hay estudiantes registrados aún.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int i = 1;
+                                foreach (var e in lista)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted small">@(i++)</td>
+                                        <td class="fw-semibold">@(e.NombreCompleto ?? "—")</td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                @(e.TipoDocumento?.Sigla ?? "—")
+                                            </span>
+                                        </td>
+                                        <td class="font-monospace small">@(e.NumeroDocumento ?? "—")</td>
+                                        <td>
+                                            @if (e.Acudiente != null)
+                                            {
+                                                <span>@e.Acudiente.NombreCompleto</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-secondary border">
+                                                    <i class="bi bi-dash me-1"></i>Sin acudiente
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (e.InstitucionEducativa != null)
+                                            {
+                                                <span>@e.InstitucionEducativa.NombreInstitucion</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark border">
+                                                    <i class="bi bi-building me-1"></i>Sin institución
+                                                </span>
+                                            }
+                                        </td>
+                                        @if (esSuperAdmin)
+                                        {
+                                            <td class="pe-4">
+                                                <a asp-controller="Estudiantes" asp-action="Editar"
+                                                   asp-route-id="@e.IdEstudiante"
+                                                   class="btn btn-sm btn-outline-primary fw-semibold">
+                                                    <i class="bi bi-pencil-fill me-1"></i>Editar
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById("filtro").addEventListener("input", function () {
+        var term = this.value.toLowerCase();
+        document.querySelectorAll("#tablaEstudiantes tbody tr").forEach(function (row) {
+            row.style.display = row.textContent.toLowerCase().includes(term) ? "" : "none";
+        });
+    });
+</script>
+}
