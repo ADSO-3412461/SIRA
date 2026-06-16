@@ -1,0 +1,296 @@
+/* =====================================================
+   SIRA — Sistema Integral de Registro de Ausencias
+   Estilos personalizados del proyecto
+   ===================================================== */
+
+/* ---- Variables CSS ---- */
+:root {
+  --sira-navy:     #1a2e4a;
+  --sira-navy-dark: #111f33;
+  --sira-accent:   #2d6bc4;
+  --sira-white:    #ffffff;
+  --sira-grey-bg:  #f4f6f9;
+}
+
+/* ---- Base ---- */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* =====================================================
+   NAVBAR
+   ===================================================== */
+
+.navbar-sira {
+  background-color: var(--sira-navy);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-sira .navbar-brand {
+  color: var(--sira-white);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.06em;
+}
+
+.navbar-sira .navbar-brand:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.navbar-sira .nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.navbar-sira .nav-link:hover {
+  color: var(--sira-white) !important;
+}
+
+.navbar-sira .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.navbar-sira .navbar-toggler-icon {
+  filter: invert(1);
+}
+
+.btn-login {
+  background-color: transparent;
+  color: var(--sira-white);
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 6px;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: inline-block;
+}
+
+.btn-login:hover {
+  background-color: var(--sira-white);
+  color: var(--sira-navy);
+  border-color: var(--sira-white);
+}
+
+/* =====================================================
+   HERO SECTION
+   ===================================================== */
+
+.hero-section {
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--sira-navy) 0%, var(--sira-navy-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 1.5rem 4rem; /* top: compensa navbar fixed-top ~56px */
+  color: var(--sira-white);
+}
+
+.hero-section h1 {
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.hero-section p.lead {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 620px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.btn-cta {
+  background-color: var(--sira-accent);
+  color: var(--sira-white);
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 2.2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(45, 107, 196, 0.35);
+}
+
+.btn-cta:hover {
+  background-color: #1e5aad;
+  color: var(--sira-white);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(45, 107, 196, 0.45);
+}
+
+.btn-cta:active {
+  transform: translateY(0);
+}
+
+/* =====================================================
+   SECCIÓN ¿CÓMO FUNCIONA?
+   ===================================================== */
+
+.how-section {
+  background-color: var(--sira-grey-bg);
+  padding: 5rem 1.5rem;
+}
+
+/* Ancla de scroll respeta altura del navbar fijo */
+#como-funciona {
+  scroll-margin-top: 70px;
+}
+
+.how-section .section-title {
+  color: var(--sira-navy);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin-bottom: 0.5rem;
+}
+
+.how-section .section-subtitle {
+  color: #6c757d;
+  font-size: 1rem;
+  margin-bottom: 3rem;
+}
+
+.step-card {
+  background: var(--sira-white);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+  padding: 2.25rem 1.75rem;
+  text-align: center;
+  height: 100%;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.step-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
+  transform: translateY(-3px);
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--sira-navy);
+  color: var(--sira-white);
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 1rem;
+}
+
+.step-icon {
+  font-size: 2.75rem;
+  color: var(--sira-accent);
+  margin-bottom: 1.1rem;
+  line-height: 1;
+}
+
+.step-card h5 {
+  font-weight: 700;
+  color: var(--sira-navy);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.step-card p {
+  color: #6c757d;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  margin-bottom: 0;
+}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+
+.footer-sira {
+  background-color: var(--sira-navy-dark);
+  color: rgba(255, 255, 255, 0.75);
+  padding: 2.75rem 1.5rem 2rem;
+}
+
+.footer-sira a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+}
+
+.footer-sira a:hover {
+  color: var(--sira-white);
+}
+
+.footer-contact p {
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.footer-contact i {
+  color: var(--sira-accent);
+}
+
+.footer-brand {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.footer-brand-sub {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+}
+
+.footer-copy {
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0;
+}
+
+/* =====================================================
+   PÁGINA CREAR EXCUSA
+   ===================================================== */
+
+.page-crear {
+  background-color: var(--sira-grey-bg);
+  min-height: 100vh;
+  padding-top: 80px;    /* compensa navbar fixed-top (56px) + breathing room */
+  padding-bottom: 4rem;
+}
+
+/* =====================================================
+   PÁGINA DASHBOARD
+   ===================================================== */
+
+.page-dashboard {
+  background-color: var(--sira-grey-bg);
+  min-height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 4rem;
+}
+
+/* =====================================================
+   FOCUS STATES (accesibilidad)
+   ===================================================== */
+
+.btn-cta:focus-visible,
+.btn-login:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 3px;
+}

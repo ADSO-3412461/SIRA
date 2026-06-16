@@ -1,0 +1,546 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-dashboard">
+    <div class="container-fluid px-4">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                      style="width:52px;height:52px;background-color:var(--sira-accent);flex-shrink:0;">
+                    <i class="bi bi-grid-fill text-white fs-4"></i>
+                </span>
+                <div>
+                    <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Dashboard</h1>
+                    <p class="text-muted mb-0 small">Excusas registradas en el sistema</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a asp-controller="Acudientes" asp-action="Consultar"
+                   class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="bi bi-person-vcard-fill me-1"></i>Acudientes
+                </a>
+                <a asp-controller="Estudiantes" asp-action="Consultar"
+                   class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="bi bi-mortarboard-fill me-1"></i>Estudiantes
+                </a>
+                @if (Context.Session.GetInt32("EsSuperUsuario") == 1)
+                {
+                    <a asp-controller="InstitucionEducativa" asp-action="Index"
+                       class="btn btn-sm btn-outline-secondary fw-semibold">
+                        <i class="bi bi-building-fill me-1"></i>Instituciones
+                    </a>
+                    <a asp-controller="Dashboard" asp-action="Administradores"
+                       class="btn btn-sm btn-outline-secondary fw-semibold">
+                        <i class="bi bi-people-fill me-1"></i>Administradores
+                    </a>
+                    @if (Context.Session.GetInt32("EsRoot") == 1)
+                    {
+                        <a asp-controller="ConsolaSql" asp-action="Index"
+                           class="btn btn-sm fw-semibold"
+                           style="background-color:#dc3545;color:#fff;border-color:#dc3545;">
+                            <i class="bi bi-terminal-fill me-1"></i>Consola SQL
+                        </a>
+                    }
+                }
+                <span class="badge rounded-pill px-3 py-2 fs-6"
+                      style="background-color:var(--sira-navy);">
+                    <i class="bi bi-file-earmark-text me-1"></i>
+                    @Model.TotalRegistros excusa@(Model.TotalRegistros == 1 ? "" : "s") registrada@(Model.TotalRegistros == 1 ? "" : "s")
+                </span>
+            </div>
+        </div>
+
+        @{
+            int desde = Model.TotalRegistros == 0 ? 0 : (Model.PaginaActual - 1) * 10 + 1;
+            int hasta  = Math.Min(Model.PaginaActual * 10, Model.TotalRegistros);
+            int pIni   = Math.Max(1, Model.PaginaActual - 2);
+            int pFin   = Math.Min(Model.TotalPaginas, pIni + 4);
+            if (pFin - pIni < 4) pIni = Math.Max(1, pFin - 4);
+        }
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Tarjeta de la tabla -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead style="background-color:var(--sira-navy);color:#fff;">
+                            <tr>
+                                <th class="ps-4 py-3" style="width:50px;">#</th>
+                                <th class="py-3">Estudiante</th>
+                                <th class="py-3">Tipo Doc.</th>
+                                <th class="py-3">N° Documento</th>
+                                <th class="py-3" style="min-width:220px;">Motivo</th>
+                                <th class="py-3">Estado</th>
+                                <th class="py-3">Fecha</th>
+                                <th class="py-3 text-center">Evidencia</th>
+                                <th class="py-3 text-center pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Filas.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        No hay excusas registradas aún.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int i = (Model.PaginaActual - 1) * 10 + 1;
+                                foreach (var fila in Model.Filas)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted small">@(i++)</td>
+                                        <td class="fw-semibold">@fila.NombreEstudiante</td>
+                                        <td>
+                                            <span class="badge bg-secondary">@fila.TipoDocumento</span>
+                                        </td>
+                                        <td class="font-monospace small">@fila.NumeroDocumento</td>
+                                        <td>
+                                            <span class="d-inline-block text-truncate"
+                                                  style="max-width:260px;"
+                                                  title="@fila.MotivoInasistencia">
+                                                @fila.MotivoInasistencia
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var (badgeCss, badgeIcon) = fila.Estado switch
+                                                {
+                                                    "Aprobada"  => ("bg-success",          "bi-check-circle-fill"),
+                                                    "Rechazada" => ("bg-danger",            "bi-x-circle-fill"),
+                                                    _           => ("bg-warning text-dark", "bi-hourglass-split")
+                                                };
+                                            }
+                                            <span class="badge @badgeCss" id="badge-@fila.IdExcusa">
+                                                <i class="bi @badgeIcon me-1"></i>@fila.Estado
+                                            </span>
+                                        </td>
+                                        <td class="small text-nowrap">
+                                            @fila.FechaRegistro.ToString("dd/MM/yyyy HH:mm")
+                                        </td>
+                                        <td class="text-center">
+                                            @if (fila.TieneEvidencia)
+                                            {
+                                                <a asp-controller="Dashboard"
+                                                   asp-action="Descargar"
+                                                   asp-route-idExcusa="@fila.IdExcusa"
+                                                   class="btn btn-outline-primary btn-sm"
+                                                   title="Descargar evidencia">
+                                                    <i class="bi bi-download me-1"></i>Descargar
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-secondary border">
+                                                    <i class="bi bi-dash me-1"></i>Sin archivo
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            @if (fila.Estado == "Aprobada")
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-success fw-semibold"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalInfoProcesada"
+                                                        data-estado="Aprobada">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Acciones
+                                                </button>
+                                            }
+                                            else if (fila.Estado == "Rechazada")
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger fw-semibold"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalInfoProcesada"
+                                                        data-estado="Rechazada">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Acciones
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-secondary fw-semibold"
+                                                        data-id="@fila.IdExcusa"
+                                                        data-nombre="@fila.NombreEstudiante"
+                                                        data-motivo="@fila.MotivoInasistencia"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalDecision"
+                                                        onclick="poblarModalDecision(this)">
+                                                    <i class="bi bi-pencil-square me-1"></i>Acciones
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        @if (Model.TotalPaginas > 1 || Model.TotalRegistros > 0)
+        {
+            <div class="d-flex flex-column align-items-center gap-2 py-3">
+
+                <nav aria-label="Paginación de excusas">
+                    <ul class="pagination pagination-sm mb-0">
+
+                        <!-- Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaAnterior ? $"/Dashboard?pagina={Model.PaginaActual - 1}" : "#")"
+                               aria-label="Anterior">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Números de página (ventana de 5) -->
+                        @for (int p = pIni; p <= pFin; p++)
+                        {
+                            <li class="page-item @(p == Model.PaginaActual ? "active" : "")">
+                                <a class="page-link" href="/Dashboard?pagina=@p">@p</a>
+                            </li>
+                        }
+
+                        <!-- Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaSiguiente ? $"/Dashboard?pagina={Model.PaginaActual + 1}" : "#")"
+                               aria-label="Siguiente">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+                <small class="text-muted">
+                    Mostrando @desde – @hasta de @Model.TotalRegistros excusa@(Model.TotalRegistros == 1 ? "" : "s")
+                </small>
+
+            </div>
+        }
+
+    </div>
+</div>
+
+<!-- ── Modal Informativo Excusa Procesada ─────────────────────────────────── -->
+<div class="modal fade" id="modalInfoProcesada" tabindex="-1" aria-labelledby="modalInfoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalInfoLabel">
+                    <i class="bi bi-info-circle-fill me-2"></i>Excusa procesada
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-center">
+                <p class="mb-0 fs-6" id="msgProcesada"></p>
+            </div>
+
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary fw-semibold"
+                        data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-1"></i>Entendido
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal de Decisión ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalDecision" tabindex="-1" aria-labelledby="modalDecisionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalDecisionLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Decisión sobre excusa
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <form id="formDecision" asp-controller="Excusas" asp-action="ActualizarEstado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="hdnIdExcusa"  name="idExcusa" />
+                <input type="hidden" id="hdnEstado"    name="estado" />
+
+                <div class="modal-body p-4">
+
+                    <!-- Nombre del estudiante -->
+                    <div class="mb-3 p-3 rounded"
+                         style="background:var(--sira-grey-bg);border-left:4px solid var(--sira-accent);">
+                        <small class="text-muted d-block">Estudiante</small>
+                        <span class="fw-semibold" id="lblEstudiante"></span>
+                    </div>
+
+                    <!-- Motivo de inasistencia -->
+                    <div class="mb-3">
+                        <small class="text-muted d-block fw-semibold">Motivo de inasistencia</small>
+                        <span class="small" id="lblMotivoInasistencia"></span>
+                    </div>
+
+                    <!-- Motivo de la decisión -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="txtMotivoDecision">
+                            Motivo de la decisión <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="txtMotivoDecision"
+                                  name="motivoDecision" rows="3"
+                                  placeholder="Ingrese el motivo de la decisión..."></textarea>
+                        <div class="text-danger small mt-1 d-none" id="err-motivo">
+                            El motivo es obligatorio.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-semibold"
+                            onclick="return setEstado('Aprobada')">
+                        <i class="bi bi-check-circle-fill me-1"></i>Aprobar
+                    </button>
+                    <button type="submit" class="btn btn-danger fw-semibold"
+                            onclick="return setEstado('Rechazada')">
+                        <i class="bi bi-x-circle-fill me-1"></i>Rechazar
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal Agregar Administrador ───────────────────────────────────────── -->
+@if (Context.Session.GetInt32("EsSuperUsuario") == 1)
+{
+<div class="modal fade" id="modalAdmin" tabindex="-1" aria-labelledby="modalAdminLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header" style="background:var(--sira-navy);">
+                <h5 class="modal-title text-white fw-semibold" id="modalAdminLabel">
+                    <i class="bi bi-person-plus-fill me-2"></i>Agregar Administrador
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <form id="formAdmin" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminNombre">
+                            Nombre completo <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="adminNombre"
+                               name="NombreCompleto" placeholder="Ej. María García" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminNombre">
+                            El nombre es obligatorio.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminCorreo">
+                            Correo electrónico <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="adminCorreo"
+                               name="Correo" placeholder="correo@ejemplo.com" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminCorreo">
+                            Ingrese un correo válido.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminAlias">
+                            Usuario (alias) <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="adminAlias"
+                               name="Alias" placeholder="Ej. mgarcia" autocomplete="off" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminAlias">
+                            El alias es obligatorio.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="adminClave">
+                            Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="adminClave"
+                               name="Clave" autocomplete="new-password" />
+                        <div class="text-danger small mt-1 d-none" id="err-adminClave">
+                            La contraseña es obligatoria.
+                        </div>
+                    </div>
+
+                    <div id="alertAdmin" class="alert d-none" role="alert"></div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnGuardarAdmin"
+                            class="btn btn-primary fw-semibold"
+                            style="background:var(--sira-accent);border-color:var(--sira-accent);">
+                        <i class="bi bi-person-check-fill me-2"></i>Guardar
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+}
+
+@section Scripts {
+<script>
+    function poblarModalDecision(btn) {
+        document.getElementById("hdnIdExcusa").value              = btn.getAttribute("data-id");
+        document.getElementById("hdnEstado").value                = "";
+        document.getElementById("lblEstudiante").textContent      = btn.getAttribute("data-nombre");
+        document.getElementById("lblMotivoInasistencia").textContent = btn.getAttribute("data-motivo");
+        document.getElementById("txtMotivoDecision").value        = "";
+        document.getElementById("txtMotivoDecision").classList.remove("is-invalid");
+        document.getElementById("err-motivo").classList.add("d-none");
+    }
+
+    function setEstado(estado) {
+        var motivo = document.getElementById("txtMotivoDecision").value.trim();
+        if (!motivo) {
+            document.getElementById("err-motivo").classList.remove("d-none");
+            document.getElementById("txtMotivoDecision").classList.add("is-invalid");
+            return false;
+        }
+        document.getElementById("hdnEstado").value = estado;
+        return true;
+    }
+
+    // ── Modal Agregar Administrador ───────────────────────────────────────────
+    var _modalAdmin = null;
+
+    function abrirModalAdmin() {
+        var modalEl = document.getElementById("modalAdmin");
+        if (!modalEl) return;
+
+        // Limpiar formulario
+        document.getElementById("formAdmin").reset();
+        ["err-adminNombre","err-adminCorreo","err-adminAlias","err-adminClave"].forEach(function(id) {
+            document.getElementById(id).classList.add("d-none");
+        });
+        document.getElementById("alertAdmin").className = "alert d-none";
+        document.getElementById("btnGuardarAdmin").disabled = false;
+        document.getElementById("btnGuardarAdmin").innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+
+        if (!_modalAdmin) _modalAdmin = new bootstrap.Modal(modalEl);
+        _modalAdmin.show();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // ── Formulario Agregar Administrador ─────────────────────────────────
+        var formAdmin = document.getElementById("formAdmin");
+        if (formAdmin) {
+            formAdmin.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                var nombre = document.getElementById("adminNombre").value.trim();
+                var correo = document.getElementById("adminCorreo").value.trim();
+                var alias  = document.getElementById("adminAlias").value.trim();
+                var clave  = document.getElementById("adminClave").value;
+                var ok = true;
+
+                document.getElementById("err-adminNombre").classList.toggle("d-none", nombre !== "");
+                document.getElementById("err-adminCorreo").classList.toggle("d-none", correo !== "" && /\S+@@\S+\.\S+/.test(correo));
+                document.getElementById("err-adminAlias").classList.toggle("d-none",  alias  !== "");
+                document.getElementById("err-adminClave").classList.toggle("d-none",  clave  !== "");
+
+                if (!nombre || !alias || !clave) ok = false;
+                if (!correo || !/\S+@@\S+\.\S+/.test(correo)) ok = false;
+                if (!ok) return;
+
+                var btnG = document.getElementById("btnGuardarAdmin");
+                btnG.disabled = true;
+                btnG.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Guardando...";
+
+                var token = formAdmin.querySelector("[name='__RequestVerificationToken']").value;
+                var body  = new URLSearchParams({
+                    NombreCompleto: nombre, Correo: correo,
+                    Alias: alias, Clave: clave,
+                    __RequestVerificationToken: token
+                });
+
+                try {
+                    var resp = await fetch("/Dashboard/AgregarAdministrador", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: body.toString()
+                    });
+                    var json = await resp.json();
+
+                    if (json.success) {
+                        if (_modalAdmin) _modalAdmin.hide();
+                    } else {
+                        var alertAdmin = document.getElementById("alertAdmin");
+                        alertAdmin.className   = "alert alert-danger";
+                        alertAdmin.textContent = json.message || "Ocurrió un error.";
+                        btnG.disabled  = false;
+                        btnG.innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+                    }
+                } catch {
+                    var alertAdmin = document.getElementById("alertAdmin");
+                    alertAdmin.className   = "alert alert-danger";
+                    alertAdmin.textContent = "Error de conexión. Intente de nuevo.";
+                    btnG.disabled  = false;
+                    btnG.innerHTML = "<i class=\"bi bi-person-check-fill me-2\"></i>Guardar";
+                }
+            });
+        }
+
+        document.getElementById("txtMotivoDecision").addEventListener("input", function () {
+            if (this.value.trim()) {
+                document.getElementById("err-motivo").classList.add("d-none");
+                this.classList.remove("is-invalid");
+            }
+        });
+
+        document.getElementById("modalInfoProcesada").addEventListener("show.bs.modal", function (e) {
+            var estado = e.relatedTarget.getAttribute("data-estado");
+            document.getElementById("msgProcesada").textContent =
+                "Esta excusa ya fue " + estado + " y no puede ser modificada.";
+        });
+    });
+</script>
+}

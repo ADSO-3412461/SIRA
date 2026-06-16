@@ -1,0 +1,202 @@
+@model SIRA.ViewModels.ConsolaSqlViewModel
+@{
+    ViewData["Title"] = "Consola SQL";
+    int pIni = Math.Max(1, Model.PaginaActual - 2);
+    int pFin = Math.Min(Model.TotalPaginas, pIni + 4);
+    if (pFin - pIni < 4) pIni = Math.Max(1, pFin - 4);
+    int desde = Model.TotalRegistros == 0 ? 0 : (Model.PaginaActual - 1) * 10 + 1;
+    int hasta  = Math.Min(Model.PaginaActual * 10, Model.TotalRegistros);
+}
+
+<div class="page-dashboard">
+    <div class="container-fluid px-4">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                  style="width:52px;height:52px;background-color:#dc3545;flex-shrink:0;">
+                <i class="bi bi-terminal-fill text-white fs-4"></i>
+            </span>
+            <div>
+                <h1 class="h4 fw-bold mb-0" style="color:var(--sira-navy);">Consola SQL</h1>
+                <p class="text-muted mb-0 small">Acceso directo a la base de datos</p>
+            </div>
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="btn btn-sm btn-outline-secondary fw-semibold ms-auto">
+                <i class="bi bi-arrow-left me-1"></i>Volver al Dashboard
+            </a>
+        </div>
+
+        <!-- Advertencia -->
+        <div class="alert alert-danger d-flex align-items-start gap-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>Zona de peligro.</strong> Las consultas se ejecutan directamente sobre la base de datos
+                sin validaciones adicionales. Una consulta mal escrita puede borrar o corromper datos de forma
+                irreversible. Úsala solo si sabes lo que estás haciendo.
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form asp-action="Ejecutar" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Consulta SQL</label>
+                        <textarea name="sqlQuery" class="form-control font-monospace"
+                                  rows="6" placeholder="SELECT * FROM usuario LIMIT 10;"
+                                  style="font-size:0.85rem;">@Model.SqlQuery</textarea>
+                    </div>
+                    <button type="submit" class="btn fw-semibold"
+                            style="background-color:#dc3545;color:#fff;border-color:#dc3545;">
+                        <i class="bi bi-play-fill me-1"></i>Ejecutar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resultado -->
+        @if (Model.Mensaje != null)
+        {
+            <div class="alert @(Model.TieneError ? "alert-danger" : "alert-success") mb-4" role="alert">
+                <i class="bi @(Model.TieneError ? "bi-x-circle-fill" : "bi-check-circle-fill") me-2"></i>
+                @Model.Mensaje
+            </div>
+
+            @if (Model.Columnas.Any())
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle mb-0 small font-monospace">
+                                <thead style="background-color:var(--sira-navy);color:#fff;">
+                                    <tr>
+                                        @foreach (var col in Model.Columnas)
+                                        {
+                                            <th class="py-2 px-3">@col</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var fila in Model.Filas)
+                                    {
+                                        <tr>
+                                            @foreach (var celda in fila)
+                                            {
+                                                <td class="px-3">@celda</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <!-- Historial de auditoría -->
+        <h2 class="h5 fw-semibold mb-3" style="color:var(--sira-navy);">
+            <i class="bi bi-clock-history me-2"></i>Historial de ejecuciones
+        </h2>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0 small">
+                        <thead style="background-color:var(--sira-navy);color:#fff;">
+                            <tr>
+                                <th class="ps-4 py-2">Fecha</th>
+                                <th class="py-2">Usuario</th>
+                                <th class="py-2">Resultado</th>
+                                <th class="py-2">Error</th>
+                                <th class="py-2 pe-4">Script ejecutado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Auditorias.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox d-block mb-1"></i>Sin ejecuciones registradas.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var a in Model.Auditorias)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-nowrap">@a.FechaEjecucion.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                        <td>@a.Alias</td>
+                                        <td>@a.Resultado</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(a.MensajeError))
+                                            {
+                                                <span class="text-danger" title="@a.MensajeError">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>
+                                                    <span class="d-inline-block text-truncate" style="max-width:200px;">@a.MensajeError</span>
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="pe-4">
+                                            <span class="d-inline-block text-truncate font-monospace"
+                                                  style="max-width:400px;" title="@a.SqlEjecutado">
+                                                @a.SqlEjecutado
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        @if (Model.TotalPaginas > 1 || Model.TotalRegistros > 0)
+        {
+            <div class="d-flex flex-column align-items-center gap-2 py-3">
+
+                <nav aria-label="Paginación historial">
+                    <ul class="pagination pagination-sm mb-0">
+
+                        <!-- Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaAnterior ? $"/ConsolaSql?pagina={Model.PaginaActual - 1}" : "#")"
+                               aria-label="Anterior">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Números de página (ventana de 5) -->
+                        @for (int p = pIni; p <= pFin; p++)
+                        {
+                            <li class="page-item @(p == Model.PaginaActual ? "active" : "")">
+                                <a class="page-link" href="/ConsolaSql?pagina=@p">@p</a>
+                            </li>
+                        }
+
+                        <!-- Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link"
+                               href="@(Model.TienePaginaSiguiente ? $"/ConsolaSql?pagina={Model.PaginaActual + 1}" : "#")"
+                               aria-label="Siguiente">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+                <small class="text-muted">
+                    Mostrando @desde – @hasta de @Model.TotalRegistros ejecucione@(Model.TotalRegistros == 1 ? "" : "s")
+                </small>
+
+            </div>
+        }
+
+    </div>
+</div>
